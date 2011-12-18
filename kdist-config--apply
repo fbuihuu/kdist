@@ -1,0 +1,68 @@
+#! /bin/bash
+
+USAGE="apply [-v] [--strict] [--verify] <config>"
+
+strict=
+verify=
+
+while
+	case $1 in
+	-v)		verbose=yes ;;
+	--strict)	strict=yes ;;
+	--verify)	verify=yes ;;
+	-*)		usage ;;
+	*)		break
+	esac
+do
+	shift
+done
+
+if test $# -ne 1; then
+	usage
+fi
+
+if ! test -f "$1"; then
+	die "Config not found."
+fi
+
+cleanup_on_exit () {
+	rm -f $tmpfile
+}
+trap cleanup_on_exit 0
+
+tmpfile=$(mktemp)
+cp "$1" $tmpfile
+
+#
+# The diff is read from stdin
+#
+
+while read name
+do
+	read old && read new ||
+	die "Prematured EOF near: ${name:-the start of file}"
+
+	cur=$(config__lookup_symbol_quotes $name $tmpfile)
+	cur=${cur:-Z}
+
+	if test $strict && test "$cur" != "$old"; then
+		die "$name value mismatch with patch one ($cur != $old)"
+	fi
+
+	case $cur,$new in
+	$new,$new)
+		say "unchanged $name ($new)" ;;
+	*,Z)
+		say "unsetting $name"
+		config__unset_symbol $name $tmpfile ;;
+	*,N)
+		say "unsetting $name"
+		config__unset_symbol $name $tmpfile ;;
+	*)
+		say "setting $name to $new"
+		config__set_symbol "$new" $name $tmpfile
+	esac ||
+	die "Failed to apply change: '$name $old $new'"
+done
+
+cp $tmpfile "$1"

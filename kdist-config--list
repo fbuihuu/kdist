@@ -1,0 +1,25 @@
+#! /bin/bash
+
+USAGE="list [--type=<name>] [--fullpath] <pattern>"
+
+type_opt=
+fullpath_opt=
+
+while
+	case $1 in
+	--type=*)	type_opt=$1 ;;
+	--fullpath)	fullpath_opt=$1 ;;
+	-*)		usage ;;
+	*)		break
+	esac
+do
+	shift
+done
+
+if test $# -ne 1; then
+	usage
+fi
+
+# we need a kernel repository to resolve the pattern.
+kdist__cd_kernel_topdir &&
+config__resolve_files $type_opt $fullpath_opt "$@"

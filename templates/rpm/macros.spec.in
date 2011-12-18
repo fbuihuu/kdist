@@ -1,0 +1,15 @@
+%define name		@RPM_NAME@
+%define version		@RPM_VERSION@
+
+%define src_uname_r	@SRC_UNAME_R@
+%define uname_r		@UNAME_R@%{nil}
+
+%define source_release	@SOURCE_RELEASE@
+%define build_release	@BUILD_RELEASE@%{nil}
+
+%define archive		@ARCHIVE@
+
+%define build_srpm	@BUILD_SRPM@
+%define no_source	@NO_SOURCE@
+
+%define source_path	/usr/src/linux-%{src_uname_r}

@@ -1,0 +1,74 @@
+#! /bin/bash
+
+git__check_inside_worktree () {
+	if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1 ; then
+		warn "I'm not in a git repository."
+	fi
+}
+
+git__cd_topdir () {
+	local topdir
+	topdir=$(git rev-parse --show-toplevel) &&
+	cd "$topdir" || {
+		warn "Cannot chdir to $topdir, the toplevel of the working tree"
+	}
+}
+
+git__describe () {
+	git describe "$@" ||
+	warn "Failed to retrieve a tag description in kernel repository."
+}
+
+git__branch () {
+	GIT_DIR="$1/.git" git name-rev --no-undefined \
+			--name-only --refs=refs/heads/\* HEAD ||
+	warn "Failed to retrieve the symbolic name of HEAD in '$1'"
+}
+
+git__check_clean_work_tree () {
+	git update-index -q --refresh &&
+	test -z "$(git diff-index --name-only HEAD --)" || {
+		warn "You have local changes in your repository."
+	}
+}
+
+git__checkout () {
+	git__check_clean_work_tree && {
+		git checkout -q $1 2>/dev/null ||
+		warn "Unknown ref '$1'."
+	}
+}
+
+git__ls_remote () {
+	refs=$(git ls-remote --tags --heads $1 "${2:-'*'}") &&
+	echo $refs | cut -f2 ||
+	warn "Failed to list remote refs in '$1'"
+}
+
+git__scmversion () {
+	local short=false
+
+	if test "$1" = "--short"; then
+		short=true
+	fi
+
+	if test -z "$(git describe --exact-match 2>/dev/null)"; then
+		if $short; then
+			echo "+"
+			return
+		fi
+                # If we are past a tagged commit (like
+                # "v2.6.30-rc5-302-g72357d5"), we pretty print it.
+                if atag="`git describe 2>/dev/null`"; then
+                        echo "$atag" | awk -F- '{printf("-%05d-%s", $(NF-1),$(NF))}'
+                else
+			# If we don't have a tag at all we print -g{commitish}.
+			head=$(git rev-parse --verify --short HEAD 2>/dev/null)
+                        printf '-g%s' $head
+                fi
+	fi
+}
+
+git__tag () {
+	git tag -a -m "$1 release" $1
+}

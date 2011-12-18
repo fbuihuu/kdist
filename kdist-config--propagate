@@ -1,0 +1,228 @@
+#! /bin/bash
+
+USAGE="propagate [-i] [--no-verify] [<pattern>...]"
+
+stage_opts=
+verify=yes
+
+while
+	case $1 in
+	-i)		stage_opts="-i -p" ;;
+	--no-verify)	verify= ;;
+	-*)		usage ;;
+	*)		break
+	esac
+do
+	shift
+done
+
+
+#
+# Depending on where we exit, later we'll need to restore the index's
+# previous state if we detect an error.
+#
+cleanup_on_exit () {
+	rm -fr $tmpdir
+}
+
+cleanup_on_error () {
+	cd $(kdist__get_repository)
+	git reset -q --hard HEAD &&
+	if test $stash_id; then
+		if ! git stash apply -q --index $stash_id; then
+			warn "Error when restoring back the previous state !"
+			warn "Your previous changes are still stashed."
+			warn "Please restore then manually with git-stash."
+		fi
+	fi
+	cleanup_on_exit
+}
+
+trap cleanup_on_exit 0
+
+stash_id=
+tmpdir=$(mktemp -d)
+
+#
+# Sanity checks on the current config
+#
+kdist__cd_kernel_topdir &&
+kernel_path=$(pwd) ||
+exit
+
+if ! test -f .config; then
+	die ".config is missing, aborting."
+fi
+
+patch=$tmpdir/diff
+if ! kdist config diff --raw >$patch; then
+	die "Current config is not tracked."
+fi
+
+if ! test -s $patch; then
+	die "No local changes to propagate"
+fi
+
+#
+# Sanity checks on the targets
+#
+if test $# -eq 0
+then
+	#
+	# No target is specified, use the defaut one based on the
+	# current configuration. We'll also verify the config with the
+	# current kernel.
+	#
+	name=$(config__read_flavour .config) &&
+	test -n "$name" ||
+	die "Missing CONFIG_NAME, don't know where to propagate changes."
+
+	targets=$(config__resolve_files $name)
+else
+	#
+	# The specified targets are patterns resolved if needed using
+	# the current environment.
+	#
+	targets=$(config__resolve_files "$@")
+fi ||
+exit
+
+if ! test "$targets"; then
+	die "No config files match '$@'"
+fi
+
+#
+# Refuse to process if any files have changes which have not been
+# staged since it's currently not possible for git-stash to leave them
+# intact (therefore they won't be restored in case of no errors since
+# git-apply won't be called).
+#
+for t in $targets; do
+	case $(git status --porcelain -- $t) in
+	" "[MD]" "*)
+		die "$t has unstaged changes, exiting." ;;
+	"?? "*)
+		die "$t is currently not tracked." ;;
+	esac
+done
+
+#
+# Now we're going to play with the index, so back it up.
+#
+if ! git__check_clean_work_tree 2>/dev/null; then
+	stash_id=$(git stash create) ||
+	die "git-stash failed"
+fi
+trap cleanup_on_error 0
+
+#
+# convert a config revision into a kernel tag
+#
+declare -A hashtable
+
+__to_kern_rev () {
+	local krev
+	#
+	# First try with current HEAD: if the closest revision is the
+	# same as the config one then just use HEAD
+	#
+	krev=$(git describe HEAD) &&
+	case $krev in
+	$1*)	echo $krev; return
+	esac
+
+	# Otherwise find the most recent distribution tag
+	krev=$(kdist tag list -n1 $1\*)
+	if test "$krev"; then
+		echo $krev
+		return
+	fi
+
+	# Or try to pick the latest matching kernel tag. Note that
+	# "x.y.z-rc" will be prefered over "x.y.z"
+	krev=$(git tag -l $1\* | sort -V | tail -1)
+	if test "$krev"; then
+		echo $krev
+		return
+	fi
+
+	# Just ask to the user...
+	warn -n "Enter kernel revision to use for checking this config: "
+	while read krev
+	do
+		git rev-parse -q --verify $krev >/dev/null && {
+			# Always use a tag description.
+			krev=$(git describe $krev) &&
+			break
+		}
+		warn -n "Invalid revision, try again: "
+	done
+	echo $krev
+}
+
+conf_to_kern_rev () {
+	local crev=v${1#v}
+
+	if ! test ${hashtable[$crev]}; then
+		hashtable[$crev]=$(__to_kern_rev $crev)
+	fi &&
+	echo ${hashtable[$crev]}
+}
+
+verify_config () {
+	local config=$(readlink -f $1)
+	local conf_rev=${1%%/*}
+	local kern_rev
+
+	if ! test $verify; then
+		return
+	fi
+
+	pushd $kernel_path >/dev/null
+
+	kern_rev=$(conf_to_kern_rev $conf_rev) &&
+	echo "Updating $1 with $kern_rev kernel..." ||
+	exit
+
+	#
+	# Just reuse the devel source if it already exists
+	#
+	if ! test -d $tmpdir/kernel-devel-$kern_rev; then
+		kdist package --format=tar --prefix=kernel-devel-$kern_rev \
+			-r $kern_rev devel | tar -C $tmpdir -xf - ||
+		die "Failed to get the devel package for rev $rev"
+	fi
+	cd $tmpdir/kernel-devel-$kern_rev
+
+	#
+	# Run Kbuild to update the config file.
+	#
+	arch=$(config__read_architecture $config)
+
+	KCONFIG_OVERWRITECONFIG=1 KCONFIG_CONFIG=$config \
+		make -s ARCH=$arch oldconfig ||
+		die "Failed to run make oldconfig for $t"
+
+	popd >/dev/null
+}
+
+
+kdist__cd_repository configs
+
+for t in $targets
+do
+	echo "Patching $t..."
+	kdist config apply $t <$patch ||
+	die "Failed to patch $t."
+
+	verify_config $t ||
+	die "Failed to update $t."
+
+	echo "Staging changes in $t"
+	git stage $stage_opts $t &&
+	git checkout -- $t  ||
+	die "Failed to propagate changes to $t."
+done
+
+
+trap cleanup_on_exit 0

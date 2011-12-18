@@ -1,0 +1,89 @@
+#! /bin/bash
+
+USAGE="import [<flavour>]"
+
+while :
+do
+	case "$1" in
+	-*)
+		usage ;;
+	*)
+		break
+	esac
+	shift
+done
+
+flavour=$1
+
+#
+# Check the repo validities.
+#
+kdist__cd_kernel_topdir &&
+kdist__setup_kernel_version &&
+kdist__get_repository configs >/dev/null ||
+exit
+
+if ! test -f .config; then
+	die "Nothing to import, .config is missing"
+fi
+dotconfig="$(pwd)/.config"
+
+#
+# Figure out where to import the new config.
+#
+if ! test $flavour; then
+	flavour=$(config__read_flavour .config) ||
+	die "Your current config has no name, please specify one."
+fi
+
+arch=$(config__read_architecture .config)
+if test -n "$(config__resolve_files $arch/$flavour)"; then
+	die "Config '$flavour' already exists, aborting."
+fi
+
+#
+# Create the info file if needed.
+#
+kdist__cd_repository configs
+
+if ! test -f $flavour.info
+then
+	trap "rm -f $flavour.info" 0
+	cat >$flavour.info<<EOF &&
+Description=
+
+Type=
+
+Filter=
+#
+#
+# You're going to create a new info file for '$flavour' configuration.
+# You have to fill the mandatory fields at least. Any comments will be
+# stripped after you'll finish.
+#
+# Fields are:
+#
+#     Description [Mandatory]
+#     Type        [Optional]
+#     Filter      [Optional]
+EOF
+	# Ask to the user to fill the template...
+	${VISUAL:-${EDITOR:-vi}} $flavour.info &&
+	# and check the content.
+	sed -i -e '/^#/d' $flavour.info &&
+	config_info__load $flavour &&
+	git add $flavour.info &&
+	trap "git rm -f $flavour.info" 0 ||
+	exit
+fi
+
+dst+=$(kdist__config_version $KERNEL_VERSION_BASE)/
+dst+=$(kdist__architecture $arch)/
+dst+=$flavour
+
+echo Importing current config to $dst
+mkdir -p $(dirname $dst) &&
+cp $dotconfig $dst &&
+git add $dst &&
+
+trap - 0

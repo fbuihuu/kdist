@@ -1,0 +1,180 @@
+#! /bin/bash
+
+verbose=no
+say () {
+	if test $verbose = yes; then
+		echo >&2 $*
+	fi
+}
+
+die () {
+	echo >&2 "$@"
+	exit 1
+}
+
+warn () {
+	echo >&2 "$@"
+	return 1
+}
+
+usage () {
+	die "$(basename $0) $kdist_command $USAGE"
+}
+
+#
+# kdist general stuff
+#
+kdist__check_kernel () (
+	[ -d scripts ] && [ -d scripts/kconfig ] &&
+	[ -d arch ] && [ -d arch/x86 ] &&
+	[ -r Makefile ] &&
+	[ -d .git ] ||
+	warn "Invalid kernel directory: $(pwd -P)"
+)
+
+kdist__cd_kernel_topdir () {
+	#
+	# Linux tree must be tracked by git
+	#
+	git__check_inside_worktree &&
+	git__cd_topdir &&
+	kdist__check_kernel 2>/dev/null ||
+	warn "You must be inside a kernel repository."
+}
+
+# arch names used by kdist paths.
+kdist__architecture () {
+	local arch="$1"
+	case $arch in
+	i?86)		arch=x86_32 ;;
+	esac
+	echo "$arch"
+}
+
+# version numbers used by kdist paths.
+kdist__config_version () {
+	local v=${1#v}
+	case $v in
+	2.6.*)	v=$(expr "$v" : "\(2.6.[0-9]\+\).*") ;;
+	*)	v=$(expr "$v" : "\([0-9]\+\.[0-9]\+\).*")
+	esac &&
+	echo "$v" ||
+	echo "$1"
+}
+
+#
+# Kdist repository management
+#
+
+kdist__check_repository () {
+	[ -d "$1"/configs ] &&
+	[ -d "$1"/releases ] &&
+	[ -d "$1"/packaging ] ||
+		die "Invalid repository: $1"
+}
+
+kdist__get_repository () {
+	local path=$KDIST_DIR
+
+	if test -z "$path"
+	then
+		test -h ~/.kdist/repository ||
+		die "No repository is currently tracked by kdist."
+
+		path="$(readlink -e ~/.kdist/repository)" ||
+		die "Tracking an invalid repository: $(readlink ~/.kdist/repository)"
+
+	fi &&
+	kdist__check_repository "$path" &&
+	echo "$path${1:+/$1}"
+}
+
+kdist__cd_repository () {
+	kdist__get_repository >/dev/null
+	cd $(kdist__get_repository $1)
+}
+
+kdist__set_repository () {
+	local new
+
+	if ! new=$(readlink -e "$1"); then
+		die "Invalid path: $1"
+	fi
+	# check for the consistency of the symlink
+	if ls ~/.kdist/repository >/dev/null 2>&1; then
+		if ! test -h ~/.kdist/repository; then
+			die "~/kdist seems to be corrupted."
+		fi
+	fi
+	kdist__check_repository "$1"
+	ln -sfT "$new" ~/.kdist/repository
+}
+
+#
+# This function returns the kernel version details throught several
+# KERNEL_VERSION_xxx variables
+#
+kdist__setup_kernel_version () {
+	#
+	# The kernel version is given by 'make kernelversion'.
+	#
+	# Note: this may not be the same as the version given by
+	# 'uname -r' since it doesn't have the auto local version
+	# stuff for example.
+	#
+	KERNEL_VERSION=${1:-$(make -s kernelversion)}
+
+	#
+	# Extract the package num version if any. The package num
+	# always starts with a '-' sign. Note that -rcX doesn't match
+	# the pattern.
+	#
+	KERNEL_VERSION_PACKAGE=$(expr $KERNEL_VERSION : ".*-\([0-9]\+\)")
+
+	#
+	# KERNEL_VERSION_BASE is the kernel version without the
+	# package version stuff.
+	#
+	KERNEL_VERSION_BASE=${KERNEL_VERSION%-$KERNEL_VERSION_PACKAGE}
+}
+
+#
+# uname -r
+#
+kdist__setup_kernel_release () {
+
+	: ${KERNEL_VERSION:?"is not set in kdist__setup_kernel_release()."}
+
+	#
+	# Start oldconfig first so if the .config is not uptodate, the
+	# next call to it through kernelrelease target will be quiet.
+	#
+	make -s silentoldconfig &&
+	KERNEL_RELEASE=$(make -s kernelrelease) ||
+	return
+
+	#
+	# Retrieve the localversion (LOCALVERSION + scm + NAME)
+	#
+	KERNEL_VERSION_LOCAL=${KERNEL_RELEASE#$KERNEL_VERSION}
+}
+
+kdist__make_tag () {
+	[ $KERNEL_VERSION ] ||
+		die "BUG: kdist__make_tag(): kernel version is not set"
+
+	# the 2.x.x -> 3.x transition has been painfull
+	echo v$KERNEL_VERSION_BASE | \
+	sed -re "s/v(3\.[[:digit:]]+)(\.0)(.*)/v\1\3/" -e "s/.*/&${1:+-$1}/"
+}
+
+version__is_released () {
+	expr $1 : ".*-\([1-9][0-9]\+\)" >/dev/null
+}
+
+#
+# Include all other libs now
+#
+for lib in $libexecdir/kdist--lib-*; do
+	source $lib || exit
+done

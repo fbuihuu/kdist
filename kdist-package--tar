@@ -1,0 +1,206 @@
+#! /bin/bash
+
+USAGE="--format=tar [-q] [-z|-j] [--prefix=<prefix>] [--output-dir|-o <dir>] [-r <rev>] source|headers|devel|firmware
+
+   source            Create a tarball of the kernel source
+   headers           Create a tarball of the kernel headers
+   devel             Create a tarball of the kernel devel files
+   firmware          Create a tarball of all firmware
+
+    --prefix         Prepend <prefix>/ to each filename in the archive
+    -r               Specify the revision to archive
+    -z               Create a tar.gz instead of a bare .tar
+    -j               Create a tar.bz2 instead of a bare .tar
+    -o               Use <dir> to store the resulting files
+    -q               Be quiet
+"
+
+extract_source () {
+	git archive --format=tar --prefix=$prefix $rev | tar -C $1 -xf - &&
+	#
+	# Since the kernel.tar won't have the git repository for
+	# generating the localversion stuff, we generate .scmversion
+	# file containing its value so Kbuild can figure it out later.
+	#
+	echo -n $(git__scmversion) >$1/$prefix/.scmversion
+}
+
+package_source () {
+	extract_source $tmpdir &&
+	tar -C $tmpdir -cf - ${prefix:-.}
+}
+
+package_headers () (
+	extract_source $tmpdir &&
+	#
+	# Get rid of the unused files not involved during headers
+	# installation process.
+	#
+	cd $tmpdir/ && (
+		cd ${prefix:-.}
+		rm -rf {block,crypto,drivers,firmware,fs,init,ipc} &&
+		rm -rf {kernel,lib,mm,net,samples,security,sound} &&
+		rm -rf {tools,usr,virt,Documentation}
+	)
+	tar -cf - ${prefix:-.}
+)
+
+# Firmware is not arch specific, therefore it can be run on every
+# possible architectures.
+package_firmware () (
+	extract_source $tmpdir &&
+	#
+	# Get rid of the unused files not involved during firmware
+	# installation process.
+	#
+	cd $tmpdir && (
+		cd ${prefix:-.}
+		rm -rf {block,crypto,drivers,fs,init,ipc} &&
+		rm -rf {kernel,lib,mm,net,samples,security,sound} &&
+		rm -rf {tools,usr,virt,Documentation}
+	)
+	tar -cf - ${prefix:-.}
+)
+
+#
+# This is the source devel package, it means that it misses the
+# generated files and the .config. The main reason is that the
+# generated files must be built on the system where this package will
+# be installed.
+#
+package_devel () {
+	files=$(package__list_devel_files --rev=$rev) &&
+	files+=$(package__list_arch_devel_files --rev=$rev) &&
+
+	# Create an archive with the devel files only
+	git archive --format=tar --prefix=$prefix $rev $files
+}
+
+suffix=tar
+zip=cat
+rev=
+output_directory=
+tar=
+quiet=
+
+while
+	case $1 in
+	-z|--gzip)
+		suffix=tar.gz
+		zip=gzip ;;
+	-j|--bzip2)
+		suffix=tar.bz2
+		zip=bzip2 ;;
+	-o)
+		shift
+		output_directory=$1 ;;
+	--output-dir=*)
+		output_directory=${1#*=} ;;
+	--prefix=*)
+		prefix=${1#*=} ;;
+	-r)
+		shift
+		rev=$1 ;;
+	-q)
+		quiet=yes ;;
+	-*)
+		usage ;;
+	*)
+		break
+	esac
+do
+	shift
+done
+
+case $#,$1 in
+1,source|1,headers|1,devel|1,firmware)
+	;;
+*)
+	usage
+esac
+
+#
+# Sanitize output dir now since we might move to the kernel topdir
+#
+if test "$output_directory"
+then
+	if test -d "$output_directory"; then
+		tar=
+	elif test -d $(dirname "$output_directory"); then
+		tar=$(basename $output_directory)
+		output_directory=$(dirname $output_directory)
+	else
+		die "Output directory is invalid."
+	fi
+
+	output_directory=$(readlink -e "$output_directory")
+fi
+
+#
+# Go to the kernel topdir so we can first adjust the tar filename:
+# include the release version number.
+#
+kdist__cd_kernel_topdir || exit
+
+git__check_clean_work_tree ||
+	warn "Your local changes won't be included in the tarball"
+
+#
+# Sanitize 'prefix': it shouldn't start with a leading slash since the
+# prefix may be used by tar(1) directly, and it should be terminated
+# by a trailing slash too since the prefix can also be passed to
+# git-archive and we want a consistent behaviour across the various
+# commands.
+#
+if test "$prefix"; then
+	prefix=$(echo $prefix/ | sed -re 's,/+,/,g')
+	case $prefix in
+	/*)	warn "Stripping prefix from leading '/'"
+		prefix=${prefix#/} ;;
+	esac
+fi
+
+#
+# Setup the revision
+#
+if ! test $rev; then
+	rev=$(git describe --tags --abbrev=4 HEAD)
+fi
+
+tar=${tar:-kernel-$1-${rev#v}.$suffix}
+if test "$output_directory"; then
+	tar=$output_directory/$tar
+elif ! test -t 1; then
+	tar=/dev/stdout
+fi
+
+#
+# Do the tarball
+#
+cleanup_on_exit () {
+	if [ $tar ] && [ $tar != /dev/stdout ]; then
+		rm -f $tar
+	fi
+	rm -fr $tmpdir
+}
+
+trap cleanup_on_exit 0
+
+tmpdir=$(mktemp -d)
+
+#
+# generate the package
+#
+set -o pipefail
+
+{ package_$1 | $zip; }>$tar || {
+	die "Failed to generate the archive."
+}
+
+if ! test $quiet && test "$tar" != /dev/stdout; then
+	echo $tar
+fi
+
+# archive is now finished, clear 'tar' var so we don't remove the file
+# during the cleanup stage.
+tar=

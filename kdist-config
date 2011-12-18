@@ -1,0 +1,153 @@
+#! /bin/bash
+
+
+
+USAGE="<command> [<args>]
+
+The 'config' commands are:
+
+   apply        Apply a diff to one config
+   diff         Show diff between two configs
+   import       Record the current config to the kdist config db
+   info         Give information about a kernel configuration
+   install      Set up a config for the tracked kernel
+   list         List available configs matching the given pattern
+   propagate    Propagate a change to specified configs
+   upgrade      Use a template to upgrade a set of configurations
+
+See 'kdist config <command> --help' for more information on a specific command."
+
+#
+# For now nothing interesting to see here.
+#
+kdist_subcommand=$1
+shift
+
+
+case $kdist_subcommand in
+apply|diff|import|info|install|list|upgrade|propagate)
+	;;
+*)
+	usage
+esac
+
+#
+# Some internal config helpers.
+#
+__config__ls_files () {
+	local arch pattern
+
+	for arg in "$@"; do
+		case $arg in
+		*/*/*)
+			vers=$(kdist__config_version "${arg%%/*}")
+			arch="${arg%/*}"
+			arch=$(kdist__architecture "${arch#*/}")
+			pattern="$vers/$arch/${arg##*/}" ;;
+		*/*)
+			arch=$(kdist__architecture "${arg%/*}")
+			pattern="$arch/${arg##*/}" ;;
+		*)
+			pattern="$arg"
+		esac
+		git ls-files "$pattern"
+	done
+}
+
+config__ls_files () {
+	local type fullpath filter=yes
+
+	while
+		case "$1" in
+		--type=*)	type=${1#--type=} ;;
+		--fullpath)	fullpath=yes ;;
+		--no-filter)	filter= ;;
+		*)		break
+		esac
+	do
+		shift
+	done
+
+	dir=$(kdist__get_repository configs) && (
+		cd "$dir"
+		__config__ls_files "$@" | while read f
+		do
+			# 'import' command calls this function therefore the
+			# information may not be present.
+			if [ $type ]; then
+				config_info__load $(basename $f)
+				case $(config_info__get_type) in
+				${type:-*})		;;
+				*)	continue
+				esac
+			fi
+			if [ $filter ]; then
+				config_info__load $(basename $f)
+				case $f in
+				$(config_info__get_filter))	;;
+				*)	continue
+				esac
+			fi
+
+			echo "${fullpath:+$dir/}$f"
+		done
+	)
+}
+
+#
+# Resolve try to guess some parts of the config pattern which can be
+# missing. Therefore the result can be sometimes unexpected since it
+# doesn't behave like a filename pattern.
+#
+# For examples:
+#
+#       *  ->  <vers>/<arch>/*
+#     */*  ->  <vers>/*/*
+#   */*/*  ->  */*/*
+#
+# Futhermore specifying explicitly an empty arch asks for replacing it
+# with the current arch.
+#
+#    *//*  ->  */<arch>/*
+#
+config__resolve_files () {
+	local pattern
+	local -a opts
+
+	while
+		case $1 in
+		-*)	opts+=("$1") ;;
+		*)	break
+		esac
+	do
+		shift
+	done
+
+	for pattern in "$@"; do
+		# see above for some explanations.
+		case $pattern in
+		*//*)	pattern="${pattern%%/*}/$(uname -m)/${pattern##*/}" ;;
+		esac
+		case $pattern in
+		/*)	pattern="${pattern##/}" ;;
+		esac
+
+		case $pattern in
+		*/*/*)
+			config__ls_files "${opts[@]}" "$pattern" ;;
+		*/*)
+			kdist__cd_kernel_topdir &&
+			kdist__setup_kernel_version &&
+			config__ls_files "${opts[@]}" "$KERNEL_VERSION_BASE/$pattern" ;;
+		*)
+			kdist__cd_kernel_topdir &&
+			kdist__setup_kernel_version &&
+			config__ls_files "${opts[@]}" "$KERNEL_VERSION_BASE/$(uname -m)/$pattern"
+		esac
+	done
+}
+
+#
+# start the config sub command
+#
+source $libexecdir/kdist-$kdist_command--$kdist_subcommand "$@"

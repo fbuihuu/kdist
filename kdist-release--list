@@ -1,0 +1,28 @@
+#! /bin/bash
+
+
+USAGE="list [--help] [-r] [--match=<pattern>]"
+
+reverse=
+pattern='*'
+
+while
+	case $1 in
+	-r)		reverse=yes ;;
+	--match=*)	pattern=${1#--match=} ;;
+	-*)		usage ;;
+	*)		break
+	esac
+do
+	shift
+done
+
+case $# in
+0)	;;
+*)	usage
+esac
+
+
+kdist__cd_repository releases
+
+git ls-tree --name-only -d HEAD $pattern | sort ${reverse:+-r} -V

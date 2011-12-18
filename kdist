@@ -1,0 +1,123 @@
+#! /bin/bash
+
+#
+# Subcommands may need to invoke again kdist, be sure that the same
+# version is used.
+#
+__kdist=$0
+kdist () {
+	$__kdist "$@"
+}
+export -f kdist
+
+#
+# The version can be changed during the installation.
+#
+KDIST_VERSION=v0.0
+
+kdist_version() (
+	local version
+
+	# file used in tarball realeases
+	if test -f kdist-version; then
+		cat kdist-version
+		return
+	fi
+
+	cd $(dirname $0)
+
+	if ! test -d .git; then
+		echo $KDIST_VERSION
+		return
+	fi
+
+	version=$(git describe --match "v[0-9]*" --abbrev=4 HEAD 2>/dev/null) || {
+		echo $KDIST_VERSION
+		return
+	}
+	git update-index -q --refresh 2>/dev/null
+	test -z "$(git diff-index --name-only HEAD --)" || {
+		version+=-dirty
+	}
+	echo $version
+)
+
+#
+# This path is changed during installation.
+#
+LIBEXECDIR=$(dirname "$__kdist")
+TEMPLATEDIR=$LIBEXECDIR/templates
+
+libexecdir=${KDIST_EXEC_PATH:-$LIBEXECDIR}
+templatedir=${KDIST_TEMPLATE_DIR:-$TEMPLATEDIR}
+
+test -d "$libexecdir" || {
+	echo >&2 "invalid exec-path '$libexecdir'"
+	exit 1
+}
+test -d "$templatedir" || {
+	echo >&2 "Invalid template directory '$templatedir'."
+	exit 1
+}
+
+libexecdir=$(readlink -f "$libexecdir")
+templatedir=$(readlink -f "$templatedir")
+
+#
+#
+#
+kdist_usage() {
+	cat >&2 <<EOF
+Usage: kdist [--version] <command> [<args>]
+
+The kdist commands are:
+
+   config       Deal with kernel configs operations.
+   log          Show what changed between different kernel version.
+   package      Build various packages (source, binary, devel...).
+   release      Deal with kernel release operations.
+   repository   Create a repository to track configs, releases...
+   tag          Deal with kernel tags.
+   whatchanged  Show what happened between two releases.
+
+See 'kdist <command> --help' for more information on a specific command.
+EOF
+}
+
+while
+	case "$#,$1" in
+	*,--version)
+		echo kdist version $(kdist_version)
+		exit ;;
+	*,-*|0,*)
+		kdist_usage
+		exit 1 ;;
+	*)
+		break;;
+	esac
+do
+	shift
+done
+
+kdist_command=$1
+shift
+
+#
+# Include all kdist libraries
+#
+source $libexecdir/kdist--lib || exit
+
+#
+# Call the command handler: it assumes to be in kdist topdir.
+#
+
+# some aliases...
+case $kdist_command in
+repo)	kdist_command=repository ;;
+esac
+
+if ! test -f $libexecdir/kdist-$kdist_command; then
+	die "'$kdist_command' command not found."
+fi
+
+source $libexecdir/kdist-$kdist_command "$@"

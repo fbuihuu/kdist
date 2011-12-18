@@ -1,0 +1,82 @@
+#! /bin/bash
+
+USAGE="create master [--track] <config-repository> <packaging-repository> <path>"
+
+config_repo=
+packaging_repo=
+
+while :
+do
+	case $1 in
+	--track)
+		track=yes ;;
+	-*)
+		usage ;;
+	*)
+		break
+	esac
+	shift
+done
+
+case $# in
+3)
+	config_repo=$1
+	packaging_repo=$2
+	destination=$3	;;
+*)
+	usage
+esac
+
+#
+# if the URLs are local then make them absolute paths
+#
+if readlink -f $config_repo >/dev/null; then
+	config_repo=$(readlink -f $config_repo)
+fi
+if readlink -f $packaging_repo >/dev/null; then
+	packaging_repo=$(readlink -f $packaging_repo)
+fi
+
+#
+# Barf if the destination directory already exists
+#
+if test -d "$destination"; then
+	die "Destination path '$destination' already exists."
+fi
+destination=$(readlink -f "$destination")
+
+#
+# Be sure to exit from the 'destination' directory when cleaning.
+#
+olddir=$(pwd)
+
+cleanup_on_failure () {
+	cd $olddir
+	rm -fr $destination
+}
+trap cleanup_on_failure 0
+
+#
+# Create the new repository tracked by git.
+#
+mkdir $destination
+cd $destination
+git init -q &&
+
+mkdir releases
+# Ensure that the directory is tracked by git even if empty
+touch releases/.gitignore &&
+git add releases &&
+
+git submodule --quiet add $config_repo configs &&
+git submodule --quiet add $packaging_repo packaging &&
+
+# Be sure we haven't missed anything.
+kdist__check_repository . &&
+git commit -q -s -m "Initial creation" &&
+
+if test $track; then
+	kdist repository track $destination
+fi &&
+
+trap - 0

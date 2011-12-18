@@ -1,0 +1,263 @@
+#! /bin/bash
+
+
+USAGE="[--format=<fmt>] [<args>]
+
+Supported formats are:
+
+   rpm          Generate various rpm packages (defaut)
+   srpm         Generate various src.rpm packages
+   tar		Generate source tarballs
+
+See 'kdist package <command> --help' for more information on a specific command."
+
+output_directory=
+
+case $1 in
+--format=*)
+	package_format=${1#--format=}
+	shift ;;
+--help)
+	usage ;;
+*)
+	package_format=rpm
+esac
+
+# resolve some aliases
+case $package_format in
+src.rpm)	package_format=srpm;
+esac
+
+#
+# This list the devel files using a given tree object
+#
+package__list_arch_devel_files () {
+	local rev=HEAD
+
+	while
+		case $1 in
+		--rev=*)	rev=${1#--rev=} ;;
+		*)		break
+		esac
+	do
+		shift
+	done
+
+	git ls-tree --full-tree -r --name-only $rev -- arch/$1 |
+	while read f
+	do
+		case $f in
+		*/include/*)		echo $f ;;
+		*/scripts/*)		echo $f ;;
+		*Kconfig*)		echo $f ;;
+		*Kbuild*)		echo $f ;;
+		*Makefile*)		echo $f ;;
+		*asm-offsets*)		echo $f ;;
+		esac
+	done
+}
+
+package__list_devel_files () {
+	local rev=HEAD
+
+	while
+		case $1 in
+		--rev=*)	rev=${1#--rev=} ;;
+		*)		break
+		esac
+	do
+		shift
+	done
+
+	#
+	# list source files
+	#
+	echo arch/Kconfig
+	echo kernel/bounds.c
+
+	git ls-tree --full-tree -r --name-only $rev |
+	while read f
+	do
+		# Keep the makefiles in Documentation/ around since
+		# they're needed by some generic make commands (such
+		# as make mrproper...)
+		case $f in
+		arch/*)			continue ;;
+		tools/*)		continue ;;
+		esac
+
+		case $f in
+		scripts/*)		echo $f ;;
+		include/*)		echo $f ;;
+		*/scripts/*)		echo $f ;;
+		*Kconfig*)		echo $f ;;
+		*Kbuild*)		echo $f ;;
+		*Makefile*)		echo $f ;;
+		esac
+	done
+
+	# Hack: this one is needed by hostfs (enabled or not) during a
+	# make clean.
+	git ls-files arch/um/scripts/Makefile.rules
+}
+
+#
+# The main function will init the following variables and will call a
+# package_xxx helper to generate the specific target package
+#
+package_name=
+package_version=
+package_log=
+package_archive=
+package_description=
+package_tag=
+source_release=
+build_release=0
+local_build_release=
+src_uname_r=
+
+package__main () {
+	local target=$1
+	local scmversion=
+
+	# check the repo validity
+	kdist__cd_kernel_topdir || exit
+
+	# tag validity must be checked by the caller.
+	kdist__setup_kernel_version ${package_tag#v}
+
+	if ! test $package_tag; then
+		package_tag=HEAD
+		scmversion=$(git__scmversion)
+	fi
+
+	package_version=$KERNEL_VERSION_BASE
+
+	#
+	# When no target is specified, see if we can find the flavour
+	# from the .config
+	#
+	case $target in
+	'')
+		test $build_release -eq 0 ||
+			die "You must specify a target with --release."
+		test -f .config ||
+			die ".config is missing."
+
+		flavour=$(config__read_flavour .config)
+		package_name=kernel${flavour:+-$flavour} ;;
+	*)
+		package_name=kernel-$target
+	esac
+
+	#
+	# When releasing, we request the current head to be at a
+	# tagged commit.
+	#
+	if test $scmversion && test $build_release -ne 0; then
+		die "--release wants a tagged commit."
+	fi
+
+	#
+	# If we package a vanilla kernel, we don't want to include the
+	# changelog which can be huge.
+	#
+	if test $KERNEL_VERSION_PACKAGE; then
+		package_log=true
+	fi
+
+	#
+	# The source package doesn't have a 'build' release num
+	# because it would change only if the specfile did, that is
+	# mostly never. So to spare one digit for other packages, the
+	# 'build' num is merged into the release source one. The
+	# downside is that we have to release the source if the
+	# specfile changes, but as said previously, that should happen
+	# rarely.
+	#
+	# All other packages includes the source release number *and*
+	# a 'build' release number. The latest can change, for
+	# example, if the package is rebuilt with a different
+	# toolchain, if the specfiles has been modified etc...
+	#
+	source_release=${KERNEL_VERSION_PACKAGE:-0}$scmversion
+	package_archive=$package_name-$KERNEL_VERSION_BASE-$source_release
+
+	case $target in
+	source)
+		test $build_release -ne 0 &&
+			die "'source' target has no build release number." ;;
+	*)
+		# see if the caller want to append a local build release number
+		if test "$local_build_release" = yes; then
+			test -f .version ||
+			die "Missing .version, compile your kernel first."
+			local_build_release=.$(< .version)
+		fi
+		build_release+=$local_build_release
+		package_archive+=.$build_release
+	esac
+
+	# For binaries target, the exact value will be calculated later.
+	src_uname_r=$KERNEL_VERSION$scmversion
+
+	case $target in
+	firmware|headers|source)
+		[ $package_with_debuginfo = 1 ] && {
+			die "Invalid --with-debuginfo option with '$target'."
+		}
+		[ $package_with_devel = 1 ] && {
+			die "Invalid --with-devel option with '$target'."
+		}
+		package_other $target
+		return
+	esac
+
+	# Generate the list of the config files to use
+	case $target,$build_release in
+	'',0|'',0.*)
+		configs=".config" ;;
+	*,[^0])
+		#
+		# When releasing, we force the generation of the devel
+		# and debuginfo subpackages.
+		#
+		if test $package_with_devel = 0; then
+			warn "Forcing devel package generation when releasing"
+			package_with_devel=1
+		fi
+		if test $package_with_debuginfo = 0; then
+			warn "Forcing debuginfo package generation when releasing"
+			package_with_debuginfo=1
+		fi
+		# we also want clean config and packaging repositories.
+		(kdist__cd_repository configs && git__check_clean_work_tree) ||
+		die "You have local changes in your 'configs' repository."
+		(kdist__cd_repository packaging && git__check_clean_work_tree) ||
+		die "You have local changes in your 'packaging' repository."
+
+		;& # fall-through
+	*,*)
+		config_info__load $target
+		package_description=$(config_info__get_description)
+
+		configs=$(kdist config list --fullpath \*/$target) &&
+		test -n "$configs" ||
+		die "No kernel config files exists for '$target'."
+	esac &&
+
+	package_flavour $configs || {
+		if test "$verbose" != yes; then
+			warn "Failed to build '$package_format' package," \
+			     "try with '-v' option."
+		fi
+		exit 1
+	}
+}
+
+if ! test -f $libexecdir/kdist-package--$package_format; then
+	die "Unsupported package format: $package_format"
+fi
+
+source $libexecdir/kdist-package--$package_format
+

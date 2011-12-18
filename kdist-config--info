@@ -1,0 +1,26 @@
+#! /bin/bash
+
+USAGE="info [<path>]"
+
+while
+	case $1 in
+	-*)	usage ;;
+	*)	break
+	esac
+do
+	shift
+done
+
+case $# in
+0)	path=.config ;;
+1)	path=$(readlink -f $1) ;;
+*)	usage
+esac
+
+if ! test -f "$path"; then
+	die "config file not found."
+fi
+
+name=$(config__read_flavour $path)
+echo "name	:" ${name:-<undefined>}
+echo "arch	:" $(config__read_architecture $path)

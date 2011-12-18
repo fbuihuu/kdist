@@ -1,0 +1,192 @@
+#! /bin/bash
+
+USAGE="[-v] [--debug] [--stat] <new> [<old>]"
+
+
+verbose=no
+stat=no
+diff=no
+debug=no
+
+while :
+do
+	case "$1" in
+	--stat)
+		stat=yes ;;
+	--verbose|-v)
+		verbose=yes ;;
+	--debug)
+		debug=yes ;;
+	-*)
+		usage ;;
+	*)
+		break
+	esac
+	shift
+done
+
+case $# in
+1|2)
+	dist_b=$1
+	dist_a=$2
+	;;
+*)
+	usage
+esac
+
+#
+# log command assumes to be in a kernel repository (being tracked by
+# kdist or not).
+#
+kdist__cd_kernel_topdir || exit
+
+#
+# diff between two distros
+#
+declare -i new_count=0
+declare -i kept_count=0
+declare -i merged_count=0
+declare -i dropped_count=0
+
+show_one_list () {
+	local fmt="   $2 [%h] %s"
+
+	if test $stat = 'yes'; then
+		return
+	fi
+	if test $verbose = 'no'; then
+		fmt="  $2 %s"
+	fi
+
+	while read sha1 subject; do
+		git --no-pager log -1 --pretty="$fmt" $sha1
+	done <$1
+	echo
+}
+
+show_lists () {
+	if test $new_count -gt 0; then
+		echo "* New: ($new_count)"
+		show_one_list $new_list '+'
+	fi
+	if test $kept_count -gt 0; then
+		echo "* Kept: ($kept_count)"
+		show_one_list $kept_list '+'
+	fi
+	if test $merged_count -gt 0; then
+		echo "* Mainlined: ($merged_count)"
+		show_one_list $merged_list '-'
+	fi
+	if test $dropped_count -gt 0; then
+		echo "* Dropped: ($dropped_count)"
+		show_one_list $dropped_list '-'
+	fi
+}
+
+
+cherry_a=$(mktemp)
+cherry_b=$(mktemp)
+cherry_c=$(mktemp)
+new_list=$(mktemp)
+kept_list=$(mktemp)
+merged_list=$(mktemp)
+dropped_list=$(mktemp)
+
+cleanup_on_exit () {
+	rm -f $cherry_a $cherry_b $cherry_c
+	rm -f $merged_list $dropped_list
+	rm -f $new_list $kept_list
+}
+trap cleanup_on_exit 0
+
+
+base_a=$(git__describe --match="*-[1-9]*" $dist_a 2>/dev/null)
+base_b=$(git__describe --match="*-[1-9]*" $dist_b 2>/dev/null)
+base_a=${base_a%-*}
+base_b=${base_b%-*}
+
+echo >&2 "Collecting distribution info, this may take a while..."
+
+if test $base_a && test $base_b; then
+	#
+	# Collect output of 'git-cherry n+1 n base(n)':
+	#   '+' shows dropped patches (unknown reason: inexact patches...)
+	#   '-' shows obsolete patches (mainlined and kept)
+	#
+	# Collect output of 'git-cherry n n+1 base(n+1)':
+	#   '+' shows new patches
+	#   '-' same as above but shows kept patches only
+	#
+	# To compute the 'mainlined' list, we could had done:
+	#
+	#       merged_list = obsolete_list - kept_list
+	#
+	# but for correct results, we had to use the patch-id to do
+	# the comparaisons since commit messages may have been changed
+	# when mainlined. So instead we use 'git-cherry dist_a base_b'
+	# which is not sensitive to subject changes (since it uses
+	# patch-id).
+	#
+	# Note: For 'kept' patchs, we use the upstream namespace
+	# (sha1, subject...)
+	#
+	git cherry -v $dist_b $dist_a $base_a >$cherry_a &&
+	git cherry -v $dist_a $dist_b $base_b >$cherry_b &&
+	git cherry -v $base_b $dist_a $base_a >$cherry_c ||
+	die "git cherry failed"
+
+	grep "^+" $cherry_a | cut -f2- -d' ' >$dropped_list
+	grep "^+" $cherry_b | cut -f2- -d' ' >$new_list
+	grep "^-" $cherry_b | cut -f2- -d' ' >$kept_list
+	grep "^-" $cherry_c | cut -f2- -d' ' >$merged_list
+
+	new_count=$(wc -l $new_list | cut -f1 -d' ')
+	kept_count=$(wc -l $kept_list | cut -f1 -d' ')
+	merged_count=$(wc -l $merged_list | cut -f1 -d' ')
+	dropped_count=$(wc -l $dropped_list | cut -f1 -d' ')
+
+	# sanity checkings
+	if test $debug = yes
+	then
+		declare -i total_a total_b
+
+		total_b=$(git rev-list --no-merges --count $base_b..$dist_b ^$dist_a)
+		total_a=$(git rev-list --no-merges --count $base_a..$dist_a ^$dist_b)
+
+		#
+		# Some commits can have been applied in the base_a and
+		# for some reasons reverted/canceled later and then
+		# reintroduced by the dist_b.
+		#
+		# For example, a fix can have been applied in
+		# v2.6.27.44 and reverted by mistake in v2.6.30
+		# development. It finally get fixed again in the
+		# v2.6.33.5-1. See commit a89fb38 and 1b159e0.
+		#
+		# Such commits are in the kept_list, however they're
+		# not part of total_a, so we have to count them here.
+		#
+		total_a+=$(git cherry -v $base_a $dist_b $base_b | grep -c "^-")
+		total_a+=$((new_count))
+		total_a+=-$((merged_count + dropped_count))
+
+		if test $total_a != $total_b; then
+			die "BUG: commit counts mismatch betweem the 2 distros."
+		fi
+	fi
+else
+	#
+	# If dist_b is not a release, then we do a plain git-cherry
+	# and there're only 'mainlined' and 'dropped' commits.
+	#
+	git cherry -v $dist_b $dist_a $base_a >$cherry_a ||
+	die "git cherry failed"
+
+	grep "^+" $cherry_a | cut -f2- -d' ' >$dropped_list
+	grep "^-" $cherry_a | cut -f2- -d' ' >$merged_list
+
+	merged_count=$(wc -l $merged_list | cut -f1 -d' ')
+	dropped_count=$(wc -l $dropped_list | cut -f1 -d' ')
+fi
+
+show_lists

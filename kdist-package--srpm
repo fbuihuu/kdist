@@ -1,0 +1,259 @@
+#! /bin/bash
+
+USAGE="--format=srpm [-v] [--show-spec|--annotate-spec] [--spec=<specfile>] [--release=<num>] [--with-source] [--with-devel] [--with-debuginfo] [--output-dir|-o <dir>] [-r <tag>] [<flavour>|source|headers|firmware]
+
+   <flavour>         Package the kernel using the specified flavour
+   source            Package the kernel sources
+   headers           Package the kernel header files
+   firmware          Package the firmware
+
+   --with-source     Build a package embedding the kernel source
+   --with-devel      Build also the kernel devel package
+   --with-debuginfo  Build also the kernel debug info package
+
+   -r                Specify the kernel revision to package
+   --spec            Specify the .spec file to use
+   --show-spec       Show the generated spec file and exit
+   --annontate-spec  Show the generated spec file with annotations and exit
+   --release         Specify the distribution release number
+   --output-dir      Use <dir> to store the resulting files
+"
+
+source $libexecdir/kdist-package--rpm-common
+
+
+create_archive () {
+	if test $target != source && test $no_source = 1; then
+		# create an empty archive
+		(
+			cd $SOURCES &&
+			mkdir $package_archive &&
+			tar -cjf $package_archive.tar.bz2 $package_archive &&
+			rmdir $package_archive
+		)
+		return
+	fi
+	kdist package --format=tar --prefix=$package_archive/ -r $package_tag \
+		-q -j -o $SOURCES/$package_archive.tar.bz2 $1
+}
+
+package_other () {
+	local target=$1
+
+	if test $spec_only; then
+		show_spec $target
+		return
+	fi
+	say "Generating '$target' package from kernel $src_uname_r"
+	create_archive $target &&
+	show_spec $target >$SPECS/$package_name.spec &&
+	rpm__rpmbuild -bs $SPECS/$package_name.spec
+}
+
+package_flavour () {
+	local archive=$SOURCES/$package_archive
+
+	#
+	# Extract the kernel source. The prefix used is dictated by
+	# how rpm generates the path of the source code from the
+	# debuginfo package.
+	#
+	say "Extracting kernel $src_uname_r source code"
+	kdist package --format=tar --prefix=$package_archive/ -r $package_tag source | \
+		tar -C $SOURCES -xf - || exit
+
+	#
+	# Always include the source kernel tar ball. It's empty if we
+	# build the package with no source.
+	#
+	rpm_sources=(%{archive}.tar.bz2)
+
+	#
+	# Generate the localversion so we can figure out what the
+	# exact value of 'uname_r' is. Note: it's also generated in
+	# the specfile so the user can increment the release build
+	# number later.
+	#
+	echo ".$build_release" >$archive/localversion
+
+	#
+	# Calculate the exact value of 'uname_r' and do some sanity
+	# checks.
+	#
+	for src
+	do
+		arch=$(config__read_architecture "$src")
+		rpm_exclusive+="$arch "
+
+		case $arch in
+		x86_64)		asmarch=x86 ;;
+		i386)		asmarch=x86 ;;
+		arm)		asmarch=arm ;;
+		esac
+		dst=$(kdist__architecture $arch)-defconfig
+
+		say "Importing $src"
+		cp "$src" $SOURCES/$dst
+
+ 		#
+		# We want the config file uptodate otherwise the
+		# user may be prompted when building the binary
+		# package. It can be outdated when making a src.rpm
+		# of the current tree with the current config for
+		# example.
+		#
+		export KCONFIG_OVERWRITECONFIG=1
+		export KCONFIG_CONFIG=$SOURCES/$dst
+
+		make -C $archive -s ARCH=$arch silentoldconfig &&
+
+		#
+		# Here we find out the exact value of 'uname_r'. We
+		# need to use the kernel source since it may not
+		# include the flavour, for example if it's a vanilla
+		# kernel.
+		#
+		# Note: it's now safe to call kernelrelease target
+		# without fearing to get the annoying "configuration
+		# written to ..."  message since we forced all
+		# included configs to be up to date.
+		#
+		next_uname_r=$(make -C $archive -s ARCH=$arch kernelrelease) || {
+			warn "Failed to retrieve kernel release"
+			return
+		}
+		make -C $archive -s ARCH=$arch mrproper >/dev/null
+
+		if test $uname_r && test $next_uname_r != $uname_r; then
+			warn "Inconsistent release number accross configs $next_uname_r / $uname_r"
+			return
+		fi &&
+		uname_r=$next_uname_r &&
+
+		unset KCONFIG_OVERWRITECONFIG &&
+		unset KCONFIG_CONFIG &&
+
+		# Now we have the exact value of uname_r, fix up the names of
+		# the config files
+		say "Installing config in SOURCES/${uname_r}_$dst"
+		mv $SOURCES/$dst $SOURCES/${uname_r}-$dst &&
+		rpm_sources+=(${uname_r}-$dst) &&
+
+		#
+		# Always generate the devel file list for this
+		# architecture so the user can still build the devel
+		# package later.
+		#
+		list=$SOURCES/${uname_r}-$asmarch-develfiles.list
+		if ! test -f $list; then
+			say "Generating '$asmarch' devel file list"
+			package__list_arch_devel_files $asmarch >$list &&
+			rpm_sources+=(${list#*SOURCES/})
+		fi ||
+		return
+	done
+
+	#
+	# Append other extra files to the archive
+	#
+	say "Generating 'common' devel file list"
+	package__list_devel_files >$SOURCES/${uname_r}-develfiles.list &&
+	rpm_sources+=(${uname_r}-develfiles.list) ||
+	return
+
+	#
+	# At this point, we can generate the spec file since all
+	# variables are set.
+	#
+	if test $spec_only; then
+		show_spec
+		return
+	fi
+	echo "Packaging $package_name using kernel '$uname_r'..."
+	show_spec >$SPECS/$package_name.spec &&
+
+	#
+	# Finally create the archive.
+	#
+	cd $SOURCES
+
+	if test $no_source = 1
+	then
+		# Create an empty archive.The localversion is added
+		# later by the specfile.
+		rm -fr $package_archive
+		mkdir  $package_archive
+	else
+		# Embed the full kernel source but get rid of the
+		# unsupported architectures.
+		for arch in $(find $package_archive/arch -mindepth 1 -maxdepth 1 -type d)
+		do
+			asmarch=$(basename $arch)
+			if ! test -f *-$asmarch-develfiles.list; then
+				rm -fr $arch
+				continue
+			fi
+			say "Keeping source for '$asmarch' architecture"
+		done
+	fi
+
+	say "Generating $package_archive.tar.bz2" &&
+	tar --remove-files -cjf $package_archive.tar.bz2 $package_archive &&
+
+	#
+	# Weird: pack the spec file in a tarball to make rpmbuild
+	# happy. Note that the kernel tarball must be kept out of it.
+	#
+	say "Generating srpm package with rpmbuild" &&
+	rpm__rpmbuild -bs $SPECS/$package_name.spec
+}
+
+#
+# Variables using 0/1 as init values are used by conditionnal
+# expressions in the specfile.
+#
+no_source=1
+spec_only=
+
+while
+	case $1 in
+	-v|--verbose)
+		verbose=yes ;;
+	--release=*)
+		build_release=${1#*=} ;;
+	--show-spec)
+		spec_only=yes ;;
+	--annotate-spec)
+		spec_only=yes
+		rpm_annotate_spec=true ;;
+	--spec=*)
+		rpm_specfile=${1#*=} ;;
+	--with-source)
+		no_source=0 ;;
+	--with-devel)
+		package_with_devel=1 ;;
+	--with-debuginfo)
+		package_with_debuginfo=1 ;;
+	-r)
+		shift
+		package_tag=$1 ;;
+	-o)
+		shift
+		rpm__set_output_directory "$1" || exit ;;
+	--output-dir=*)
+		rpm__set_output_directory "${1#*=}" || exit ;;
+	-*)
+		usage ;;
+	*)
+		break
+	esac
+do
+	shift
+done
+
+if test $# -gt 1; then
+	usage
+fi
+
+rpm__init &&
+package__main $1

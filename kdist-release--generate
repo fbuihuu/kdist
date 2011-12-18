@@ -1,0 +1,80 @@
+#! /bin/bash
+
+USAGE="generate [--help] [-v] [-o <dir>] <target> <release>"
+
+
+output=.
+verbose=
+
+while
+	case $1 in
+	-o)		shift; output=$1 ;;
+	-v)		verbose=-v ;;
+	-*)		usage ;;
+	*)		break
+	esac
+do
+	shift
+done
+
+target=$1
+release=$2
+
+packaging_tag=$(kdist release info packaging $release) &&
+config_tag=$(kdist release info config $release) &&
+kernel_tag=$(kdist release info kernel $release) ||
+exit
+
+kdist__cd_kernel_topdir || exit
+kernel_topdir=$(pwd)
+
+#
+#
+#
+restore_config_head=no
+restore_packaging_head=no
+
+cleanup_on_exit () {
+	rm -rf $tmpdir
+
+	if test $restore_config_head = yes; then
+		kdist__cd_repository configs &&
+		git checkout -q @{-1}
+	fi || {
+		warn "Error when restoring your config repository to its"
+		warn "previous state !"
+	}
+	if test $restore_packaging_head = yes; then
+		kdist__cd_repository packaging &&
+		git checkout -q @{-1}
+	fi || {
+		warn "Error when restoring your packaging repository to its"
+		warn "previous state !"
+	}
+}
+trap cleanup_on_exit 0
+
+
+kdist__cd_repository configs
+
+rev=$(git rev-parse --verify $config_tag^{commit}) ||
+die "Tag '$config_tag' is missing in configs repository."
+if test $rev != $(git rev-parse --verify HEAD); then
+	git checkout -q $config_tag &&
+	restore_config_head=yes
+fi ||
+exit
+
+kdist__cd_repository packaging
+
+rev=$(git rev-parse --verify $packaging_tag^{commit}) ||
+die "Tag '$packaging_tag' is missing in packaging repository."
+if test $rev != $(git rev-parse --verify HEAD); then
+	git checkout -q $packaging_tag &&
+	restore_packaging_head=yes
+fi ||
+exit
+
+cd $kernel_topdir
+kdist package --format=srpm $verbose --with-devel --with-debuginfo -r $kernel_tag \
+	--release=${release##*.} -o $output $target

@@ -1,0 +1,140 @@
+#! /bin/bash
+
+USAGE="diff [options]
+     ...     diff [options] <config>
+     ...     diff [options] <file> <file>
+
+Options:
+
+  -u      show a unified diff instead
+  --raw   show raw diff instead
+"
+
+while :
+do
+	case "$1" in
+	-u)
+		unified=yes ;;
+	--raw)
+		raw=yes ;;
+	-*)
+		usage ;;
+	*)
+		break
+	esac
+	shift
+done
+
+#
+# Sort out the config files to compare
+#
+case $# in
+0|1)
+	#
+	# 0: .config <-> [DB]
+	# 1: .config <->  DB | FILE
+	#
+	kdist__cd_kernel_topdir &&
+	two=.config &&
+	case $# in
+	0)
+		test -f .config &&
+		one=$(config__read_flavour .config) ||
+		warn ".config is missing." ;;
+	1)
+		one=$1
+	esac &&
+	one=$(config__resolve_files --fullpath "$one") ;;
+2)
+	#
+	# DB|FILE <-> DB|FILE
+	#
+	one=$1; two=$2
+	{ test -f "$one" || one=$(config__resolve_files --fullpath "$1"); } &&
+	{ test -f "$two" || two=$(config__resolve_files --fullpath "$2"); } ;;
+*)
+	usage
+esac || exit
+
+if test -z "$one"; then
+	die "Incorrect pattern '$1'."
+fi
+if test -z "$two"; then
+	die "Incorrect pattern '$2'."
+fi
+
+#
+# unified diff
+#
+if test $unified; then
+	exec diff -u $one $two
+fi
+
+#
+# diff more readable for human
+#
+declare -A hash_one
+declare -i hash_one_size=0
+
+declare -A hash_two
+declare -i hash_two_size=0
+
+#
+# First hash all 'one's values
+#
+init_hash_table () {
+	while read line
+	do
+		name=${line##*CONFIG_}
+		name=${name%%[ =]*}
+
+		case "$line" in
+		"# CONFIG_"*)		val=N ;;
+		CONFIG_*=*)		val=${line#*=} ;;
+		*)			continue
+		esac
+		eval $1[$name]='$val'
+		eval $1_size+=1
+	done < $2
+}
+
+init_hash_table hash_one $one
+init_hash_table hash_two $two
+
+#
+# Print a change
+#
+print_one_change () {
+	local name=$1 old="${2:-Z}" new="${3:-Z}"
+
+	if test $raw; then
+		# raw mode use lower case
+		printf "%s\n%s\n%s\n" $name "$old" "$new"
+		return
+	fi
+
+	printf "%-30s %s --> %s\n" $name "$old" "$new"
+}
+
+#
+# For each key in one diff with same key in two
+#
+for k in ${!hash_one[*]}
+do
+	old=${hash_one[$k]}
+	new=${hash_two[$k]}
+
+	if test "$new" != "$old"; then
+		print_one_change $k "$old" "$new"
+	fi
+
+	unset "hash_two[$k]"
+done
+
+#
+# All keys left in two are new stuff
+#
+for k in ${!hash_two[*]}
+do
+	print_one_change $k "" ${hash_two[$k]}
+done

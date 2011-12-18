@@ -1,0 +1,27 @@
+#! /bin/bash
+
+USAGE="<command> [<args>]
+
+The 'tag' commands are:
+
+   create    Create a new kernel tag based on the current kernel revision
+   list      List tags previously created by 'create' command
+
+See 'kdist tag <command> --help for more information on a specific command."
+
+#
+# For now nothing interesting to see here.
+#
+kdist_subcommand=$1
+shift
+
+
+case $kdist_subcommand in
+create|list)
+	;;
+*)
+	usage
+esac
+
+
+source $libexecdir/kdist-$kdist_command--$kdist_subcommand "$@"

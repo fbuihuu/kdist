@@ -1,0 +1,26 @@
+#! /bin/bash
+
+
+USAGE="info [--help] [<name>] <release>"
+
+
+case $# in
+1)	name= ;;
+2)	name=$1; shift ;;
+*)	usage ;;
+esac
+
+kdist__cd_repository releases
+
+cd $1 2>/dev/null ||
+die "Invalid release."
+
+case $name in
+kernel|config|packaging|kdist)
+	sed -ne "s/$name[[:space:]]*=[[:space:]]*//p" Versions ;;
+"")
+	cat Versions ;;
+*)
+	die "Unknown name '$name"
+esac
+

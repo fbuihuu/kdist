@@ -1,0 +1,39 @@
+#! /bin/bash
+
+USAGE="<command> [<args>]
+
+The 'release' commands are:
+
+   new       Create a new tagged kernel release
+   generate  Generate a released kernel
+   info      Gives some information on a release
+   list      List the releases made for a given target
+
+See 'kdist release <command> --help for more information on a specific command."
+
+#
+# For now nothing interesting to see here.
+#
+kdist_subcommand=$1
+shift
+
+
+case $kdist_subcommand in
+new|generate|info|list)
+	;;
+*)
+	usage
+esac
+
+release__previous () {
+	local list
+
+	list=$(echo $1; kdist release list)
+	list=$(echo "$list" | sort -V | grep -B1 $1)
+
+	case $(echo "$list" | wc -l) in
+	2)	echo "$list" | head -n1
+	esac
+}
+
+source $libexecdir/kdist-$kdist_command--$kdist_subcommand "$@"

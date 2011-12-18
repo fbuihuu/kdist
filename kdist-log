@@ -1,0 +1,58 @@
+#! /bin/bash
+
+USAGE="[--no-pager] [-v] [--all] [<git-log options>] [branch]"
+
+declare -a gitopts
+all=
+pager=
+
+while :
+do
+	case "$1" in
+	--no-pager)
+		pager=--no-pager ;;
+	-v|--verbose)
+		verbose=yes ;;
+	--all)
+		all=yes ;;
+	-h|--help)
+		usage ;;
+	-*)
+		gitopts+=("$1") ;;
+	*)
+		break
+	esac
+	shift
+done
+
+case $# in
+0)	until=HEAD ;;
+1)	until=$1 ;;
+*)	usage
+esac
+
+#
+# log command assumes to be in a kernel repository (being tracked by
+# kdist or not).
+#
+kdist__cd_kernel_topdir || exit
+
+#
+# It should log only distro commits but also log commits if the HEAD
+# is not exactly on a tag.
+#
+until=$(git__describe --match=v\* $until) &&
+while expr $until : "v.*-[0-9]\+" >/dev/null
+do
+	since=$(git__describe --match=v\* --abbrev=0 $until~1) ||
+	exit
+
+	say "Logging $since..$until"
+	git $pager log "${gitopts[@]}" --first-parent $since..$until
+
+	if test "$all" != yes; then
+		break
+	fi
+
+	until=$since
+done
