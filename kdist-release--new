@@ -35,10 +35,11 @@ git__check_clean_work_tree 2>/dev/null ||
 warn "warning: kernel repository dirty."
 
 #
-#
+# We want the release directory clean
 #
 kdist__cd_repository
-git__check_clean_work_tree || exit
+git__check_clean_work_tree releases 2>/dev/null ||
+die "You have local changes in the 'releases' subdir of you kdist repo."
 
 #
 # For config we use the latest tag matching the kernel tag pattern if
@@ -214,4 +215,4 @@ kdist__cd_repository releases
 mkdir -p $next_release &&
 mv $tmpdir/* $next_release &&
 git add $next_release &&
-git commit -q -s -m "Release $next_release"
+git commit -s -m "Release $next_release"
