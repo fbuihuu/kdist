@@ -66,9 +66,9 @@ esac
 # Again, 'n' can be different from 'KERNEL_VERSION_PACKAGE + 1'
 #
 if test $KERNEL_VERSION_PACKAGE; then
-	sed -ie "/EXTRAVERSION =/s/-$KERNEL_VERSION_PACKAGE/-$n/" Makefile
+	sed -i "/EXTRAVERSION =/s/-$KERNEL_VERSION_PACKAGE/-$n/" Makefile
 else
-	sed -ie "s/EXTRAVERSION =.*/&-$n/" Makefile
+	sed -i "s/EXTRAVERSION =.*/&-$n/" Makefile
 fi ||
 die "failed to update the top Makefile"
 
