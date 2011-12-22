@@ -27,7 +27,7 @@ git__branch () {
 
 git__check_clean_work_tree () {
 	git update-index -q --refresh &&
-	test -z "$(git diff-index --name-only HEAD --)" || {
+	test -z "$(git diff-index --name-only HEAD -- $@)" || {
 		warn "You have local changes in your repository."
 	}
 }
