@@ -75,6 +75,13 @@ if test $rev != $(git rev-parse --verify HEAD); then
 fi ||
 exit
 
+buildrel_opt=--release=${release##*.}
+binary_opts=
+case $target in
+source)			buildrel_opt= ;;
+headers|firmware)	;;
+*)			binary_opts="--with-devel --with-debug"
+esac
 cd $kernel_topdir
-kdist package --format=srpm $verbose --with-devel --with-debuginfo -r $kernel_tag \
-	--release=${release##*.} -o $output $target
+kdist package --format=srpm $verbose -r $kernel_tag $buildrel_opt \
+	$binary_opts -o $output $target
