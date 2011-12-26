@@ -58,7 +58,7 @@ package_other () {
 package_flavour () {
 	rpm_exclusive=$(config__read_architecture $1)
 
-	uname_r=$(make -s kernelrelease)
+	uname_r=$(make -s ARCH=$rpm_exclusive kernelrelease)
 
 	if test $spec_only; then
 		show_spec
