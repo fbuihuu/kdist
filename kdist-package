@@ -72,8 +72,9 @@ package__list_devel_files () {
 	#
 	# list source files
 	#
-	echo arch/Kconfig
-	echo kernel/bounds.c
+	git ls-tree --full-tree --name-only $rev \
+		arch/Kconfig \
+		kernel/bounds.c
 
 	git ls-tree --full-tree -r --name-only $rev |
 	while read f
