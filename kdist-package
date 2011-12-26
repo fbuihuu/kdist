@@ -98,7 +98,8 @@ package__list_devel_files () {
 
 	# Hack: this one is needed by hostfs (enabled or not) during a
 	# make clean.
-	git ls-files arch/um/scripts/Makefile.rules
+	git ls-tree --full-tree --name-only $rev \
+		arch/um/scripts/Makefile.rules
 }
 
 #
