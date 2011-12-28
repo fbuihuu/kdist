@@ -74,6 +74,7 @@ package_flavour () {
 	test $package_with_devel &&
 	say "Generating devel-file list for '$asmarch' architecture" &&
 	package__list_devel_files >$SOURCES/${uname_r}-develfiles.list &&
+	package__list_output_devel_files >$SOURCES/${uname_r}-output-develfiles.list &&
 	package__list_arch_devel_files $asmarch >$SOURCES/${uname_r}-$asmarch-develfiles.list ||
 	return
 

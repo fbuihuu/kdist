@@ -1,5 +1,4 @@
 mkdir -p %{buildroot}%{kdevel_path}
-cp .config %{buildroot}%{kdevel_path}
 
 %if %no_source
 cd source
@@ -12,5 +11,8 @@ done
 %if %no_source
 cd -
 %endif
+
+list=%{_sourcedir}/%{uname_r}-output-develfiles.list
+tar -cf - --files-from=$list | tar -xf - -C %{buildroot}%{kdevel_path}
 
 make -C %{buildroot}%{kdevel_path} modules_prepare

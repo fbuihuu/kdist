@@ -158,7 +158,9 @@ package_flavour () {
 	#
 	say "Generating 'common' devel file list"
 	package__list_devel_files >$SOURCES/${uname_r}-develfiles.list &&
-	rpm_sources+=(${uname_r}-develfiles.list) ||
+	package__list_output_devel_files >$SOURCES/${uname_r}-output-develfiles.list &&
+	rpm_sources+=(${uname_r}-develfiles.list) &&
+	rpm_sources+=(${uname_r}-output-develfiles.list) ||
 	return
 
 	#

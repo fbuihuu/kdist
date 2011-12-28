@@ -102,9 +102,16 @@ package__list_devel_files () {
 	#
 	#   [1] needed by hostfs (enabled or not) during a make clean.
 	#   [2] included by arch/x86/kernel/asm-offsets_32.c.
+	#
 	git ls-tree --full-tree --name-only $rev \
 		arch/um/scripts/Makefile.rules \
 		drivers/lguest/lg.h
+}
+
+package__list_output_devel_files () {
+	echo .config
+	echo Module.symvers
+	echo System.map
 }
 
 #

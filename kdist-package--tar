@@ -63,18 +63,26 @@ package_firmware () (
 )
 
 #
-# This is the source devel package, it means that it misses the
-# generated files and the .config. The main reason is that the
-# generated files must be built on the system where this package will
-# be installed.
+# The devel tarball is not complete: 'modules_prepare' target must still
+# be run.
 #
-package_devel () {
-	files=$(package__list_devel_files --rev=$rev) &&
-	files+=$(package__list_arch_devel_files --rev=$rev) &&
-
-	# Create an archive with the devel files only
-	git archive --format=tar --prefix=$prefix $rev $files
+extract_devel () {
+	git archive --format=tar --prefix=$prefix $rev \
+		$(package__list_devel_files --rev=$rev) \
+		$(package__list_arch_devel_files --rev=$rev) | \
+	tar -C $1 -xf -
 }
+
+package_devel () (
+	for file in $(package__list_output_devel_files); do
+		test -f $file ||
+		die "$file is missing, perhaps you forgot to build your kernel ?"
+		cp $file $tmpdir/$prefix
+	done
+	extract_devel $tmpdir &&
+	cd $tmpdir &&
+	tar -cf - ${prefix:-.}
+)
 
 suffix=tar
 zip=cat
