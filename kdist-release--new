@@ -147,8 +147,8 @@ kdist__cd_repository configs &&
 if test $prev_release; then
 	echo "Generating config log"
 	git log --pretty="%s" $prev_config_tag..$config_tag -- \
-		$(kdist__config_version $prev_config_tag)/\* \
-		$(kdist__config_version $config_tag)/\* \
+		$(kdist__config_version $prev_config_tag)/ \
+		$(kdist__config_version $config_tag)/ \
 		>$tmpdir/ConfigChanges.log
 fi ||
 exit
