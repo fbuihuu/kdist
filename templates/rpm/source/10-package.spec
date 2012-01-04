@@ -25,4 +25,4 @@ rm -rf %{buildroot}
 
 %files
 %defattr (-, root, root)
-/usr/src
+%{source_path}
