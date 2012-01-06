@@ -91,14 +91,35 @@ else
 	prev_release=$(release__previous $next_release)
 fi
 
+#
+# 'tmpdir' will contain all the generated log files used for the
+# report.
+#
+cleanup_on_exit () {
+	rm -rf $tmpdir
+}
+trap cleanup_on_exit 0
+
+tmpdir=$(mktemp -d)
+
+#
+# Save all component versions
+#
+cat >$tmpdir/Versions<<EOF
+previous-release = $prev_release
+
+kernel     = $kernel_tag
+config     = $config_tag
+packaging  = $packaging_tag
+kdist      = $(kdist_version)
+EOF
+
 echo "Making release '$next_release' using the following versions:"
 echo
-echo "      - kernel    : $kernel_tag"
-echo "      - config    : $config_tag"
-echo "      - packaging : $packaging_tag"
-echo "      - kdist     : $(kdist_version)"
+while read line; do
+	echo "${line:+  - $line}"
+done <$tmpdir/Versions
 echo
-echo "Previous release is '$prev_release'."
 echo -n "Continue [Y/n]? "
 read yesno
 case "$yesno" in
@@ -108,18 +129,6 @@ esac
 if test -d $next_release; then
 	die "Release $next_release already exists."
 fi
-
-
-#
-#
-#
-cleanup_on_exit () {
-	rm -rf $tmpdir
-}
-trap cleanup_on_exit 0
-
-# 'tmpdir' will contain all the generated files.
-tmpdir=$(mktemp -d)
 
 
 if test $prev_release; then
@@ -164,18 +173,6 @@ if test $prev_release; then
 		>$tmpdir/PackagingChanges.log
 fi ||
 exit
-
-#
-# save the version
-#
-echo "Generating Versions"
-cat >$tmpdir/Versions<<EOF
-previous-release = $prev_release
-kernel = $kernel_tag
-config = $config_tag
-packaging = $packaging_tag
-kdist = $(kdist_version)
-EOF
 
 #
 # Generate the "whatchanged" report using the previous release. If no
