@@ -73,9 +73,7 @@ else
 fi
 
 #
-# Now find the release number. It's safe to use sort(1) for finding
-# the latest release since there won't be any RC in the release
-# naming.
+# Now find the release number.
 #
 kdist__cd_repository releases
 

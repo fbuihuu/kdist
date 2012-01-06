@@ -25,4 +25,8 @@ esac
 
 kdist__cd_repository releases
 
+#
+# It's safe to use sort(1) for finding the latest release since there
+# won't be any RC in the release naming or at least not for now.
+#
 git ls-tree --name-only -d HEAD $pattern | sort ${reverse:+-r} -V
