@@ -170,6 +170,7 @@ exit
 #
 echo "Generating Versions"
 cat >$tmpdir/Versions<<EOF
+previous-release = $prev_release
 kernel = $kernel_tag
 config = $config_tag
 packaging = $packaging_tag
