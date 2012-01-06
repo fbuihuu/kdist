@@ -1,6 +1,6 @@
 #! /bin/bash
 
-USAGE="new [--help] [--config=<version>]"
+USAGE="new [--help] [--config=<version>] [--packaging=<version>]"
 
 
 kernel_tag=
@@ -10,6 +10,7 @@ packaging_tag=
 while
 	case $1 in
 	--config=*)	config_tag=${1#--config=} ;;
+	--packaging=*)	packaging_tag=${1#--packaging=} ;;
 	"")		break ;;
 	*)		usage
 	esac
