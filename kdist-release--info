@@ -16,11 +16,7 @@ cd $1 2>/dev/null ||
 die "Invalid release."
 
 case $name in
-kernel|config|packaging|kdist)
-	sed -ne "s/$name[[:space:]]*=[[:space:]]*//p" Versions ;;
-"")
-	cat Versions ;;
-*)
-	die "Unknown name '$name"
+"")	cat Versions ;;
+*)	sed -ne "s/$name[[:space:]]*=[[:space:]]*//p" Versions ;;
 esac
 
