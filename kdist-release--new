@@ -80,7 +80,7 @@ fi
 kdist__cd_repository releases
 
 prev_release=$(kdist release list --match=${kernel_tag#v}.\*)
-if test $prev_release
+if test "$prev_release"
 then
 	# pick up the latest one
 	prev_release=$(echo "$prev_release" | tail -n1)
