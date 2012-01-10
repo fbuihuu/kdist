@@ -1,87 +1,153 @@
 #! /bin/bash
 
-USAGE="create [--help]"
+USAGE="create [--help] [-f] [<component>]"
 
+force=no
 
-if test $# -ne 0; then
-	usage
-fi
+while
+	case $1 in
+	-f|--force)	force=yes ;;
+	-*)		usage ;;
+	*)		break
+	esac
+do
+	shift
+done
+
+case $# in
+0)	component= ;;
+1)	component=$1 ;;
+*)	usage
+esac
+
+declare -A component_tags
+
+cleanup_on_error () {
+	for c in ${!component_tags[*]}; do
+		case $c in
+		kernel)	git reset -q --hard HEAD~1 ;;
+		*)	kdist__cd_repository $c
+		esac
+		git tag -d ${component_tags[$c]}
+	done
+}
+trap cleanup_on_error 0
+
+create__kernel_tag () {
+	local n=${ktag##*-}
+
+	git__check_clean_work_tree ||
+		die "You must have a clean kernel working tree."
+
+	# We know that the kernel repo is clean so the scmversion
+	# indicates an exact match only.
+	test $force = no &&
+	git describe --exact-match --match=${ktag%-*}-\* &>/dev/null && {
+		warn "You're about to create an empty release."
+		die  "Use '-f' if you really want to do that."
+	}
+
+	# Fatal for the kernel.
+	echo -n "Tagging 'kernel' with: $ktag [Y/n]? "
+	read yesno
+	case $yesno in
+	y|yes)	;;
+	*)	die "Aborted."
+	esac
+
+	# Again, 'n' can be different from 'KERNEL_VERSION_PACKAGE + 1'
+	if test $KERNEL_VERSION_PACKAGE; then
+		sed -i "/EXTRAVERSION =/s/-$KERNEL_VERSION_PACKAGE/-$n/" Makefile
+	else
+		sed -i "s/EXTRAVERSION =.*/&-$n/" Makefile
+	fi ||
+	die "failed to update the top Makefile"
+
+	#
+	# Finally ask git to immortalizes the event
+	#
+	if ! git commit -qas -m "Mandriva Release $ktag"; then
+		git checkout -- Makefile
+		die "git failed to commit the release."
+	fi
+	if ! git__tag $ktag; then
+		git reset -q --hard HEAD~1
+		die "git failed to create the tag."
+	fi
+	component_tags[kernel]=$ktags
+}
+
+create__tag () {
+	local component=$1
+	local tag
+
+	kdist__cd_repository $component
+	git__check_clean_work_tree
+
+	tag=$(kdist tag list -n1 $ktag.\*)
+	case $tag in
+	"")
+		tag=$ktag.1;;
+	*)
+		# We want to reuse the last tag if the HEAD is exactly
+		# pointing at it.
+		git describe --exact-match --match=$tag &>/dev/null && {
+			echo "Reusing tag '$tag' for '$component'."
+			return
+		}
+		tag=$ktag.$((${tag##*.} + 1))
+	esac
+
+	echo -n "Tagging '$component' with: $tag [Y/n]? "
+	read yesno
+	case $yesno in
+	y|yes)	;;
+	*)	echo "skipped."; return ;;
+	esac
+
+	# Specific sanity checks.
+	case $component in
+	configs)
+		test -d $(kdist__config_version $ktag)||
+		die "Missing configs for kernel '$ktag'."
+	esac
+
+	git__tag $tag || die "Aborted."
+	component_tags[$component]=$tag
+
+	cd - >/dev/null
+}
 
 kdist__cd_kernel_topdir &&
-git__check_clean_work_tree &&
 kdist__setup_kernel_version ||
 exit
 
-base=$(kdist__make_tag)
-
-# At that point we know that the repo is clean so the
-# scmversion indicates an exact match only.
-tag=$(git describe --exact-match --match=$base-\* 2>/dev/null) &&
-die "Your head is already released ($tag)"
-
 #
 # Pick up the kernel revision from the main Makefile then list the
-# tags using the previous version as pattern and take the latest rev
-# from the list.
+# tags using it as pattern and take the latest rev from the list.
 #
+base=$(kdist__make_tag)
 last=$(kdist tag list -n1 $base-\*)
 case "$last" in
 "")	n=1;;
 *)	n=$((${last##*-} + 1))
 esac
-tag=$(kdist__make_tag $n)
+ktag=$(kdist__make_tag $n)
 
-#
-# Be sure to clean the tag made in the kdist repository if something
-# wrong happen after.
-#
-tag__config_remove () {
-	cd $(kdist__get_repository)
-	git tag -d $1.1
-}
-
-echo -n "Tagging kernel with: $tag [Y/n]? "
-read yesno
-case "$yesno" in
-[nN]|[nN][oO])	die "Aborted."
+case $component in
+"")
+	create__kernel_tag
+	kdist__cd_repository
+	for c in $(git submodule foreach -q 'echo $name'); do
+		create__tag $c
+	done ;;
+kernel)
+	create__kernel_tag ;;
+*)
+	# Always create a new tag/release for the kernel first.
+	test $n -eq 1 && die "You must tag the kernel first."
+	ktag=$last
+	create__tag $component
 esac
-
-echo -n "Tagging config with: $tag.1 [Y/n]? "
-read yesno
-case "$yesno" in
-y|ye|yes)
-	cd $(kdist__get_repository configs)
-	git__check_clean_work_tree
-
-	test -d $(kdist__config_version $tag)||
-	die "Missing configs for kernel '$tag'."
-
-	git__tag $tag.1 &&
-	trap "tag__config_remove $tag" 0 ||
-	exit
-	cd - >/dev/null
-esac
-
-#
-# Again, 'n' can be different from 'KERNEL_VERSION_PACKAGE + 1'
-#
-if test $KERNEL_VERSION_PACKAGE; then
-	sed -i "/EXTRAVERSION =/s/-$KERNEL_VERSION_PACKAGE/-$n/" Makefile
-else
-	sed -i "s/EXTRAVERSION =.*/&-$n/" Makefile
-fi ||
-die "failed to update the top Makefile"
-
-#
-# Finally ask git to immortalizes the event
-#
-if ! git commit -qas -m "Mandriva Release $tag"; then
-	git checkout -- Makefile
-	die "git failed to commit the release."
-fi
-if ! git__tag $tag; then
-	git reset -q --hard HEAD~1
-	die "git failed to create the tag."
-fi
 
 trap - 0
