@@ -38,13 +38,17 @@ case $# in
 	two=.config &&
 	case $# in
 	0)
-		test -f .config &&
-		one=$(config__read_flavour .config) ||
-		warn ".config is missing." ;;
+		test -f .config ||
+		die ".config is missing."
+		pat=$(config__read_flavour .config)
+		test -n "$pat" ||
+		die ".config doesn't have a flavour, you must specify one."
+		pat=$(config__read_architecture .config)/$pat
+		;;
 	1)
-		one=$1
+		pat=$1
 	esac &&
-	one=$(config__resolve_files --fullpath "$one") ;;
+	one=$(config__resolve_files --fullpath "$pat") ;;
 2)
 	#
 	# DB|FILE <-> DB|FILE
@@ -57,10 +61,10 @@ case $# in
 esac || exit
 
 if test -z "$one"; then
-	die "Incorrect pattern '$1'."
+	die "Pattern '${1:-$pat}' gives empty match."
 fi
 if test -z "$two"; then
-	die "Incorrect pattern '$2'."
+	die "Pattern '$2' gives empty match."
 fi
 
 #
