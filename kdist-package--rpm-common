@@ -137,13 +137,6 @@ __show_spec_changelog () {
 		return
 	fi
 
-	echo "%changelog"
-	printf "* %s %s <%s> %s\n" \
-		"$(LC_TIME=en_US date +"%a %b %d %Y")" \
-		"$(git config --get user.name)"        \
-		"$(git config --get user.email)"       \
-		$uname_r
-
 	#
 	# Get the base of the log, the idea is simple: if a release
 	# has already been made (KERNLE_VERSION_PACKAGE is defined)
@@ -153,6 +146,13 @@ __show_spec_changelog () {
 	if ! test $KERNEL_VERSION_PACKAGE; then
 		die "BUG: show_spec_changelog has been called with package num unset"
 	fi
+
+	echo "%changelog"
+	printf "* %s %s <%s> %s\n" \
+		"$(LC_TIME=en_US date +"%a %b %d %Y")" \
+		"$(git config --get user.name)"        \
+		"$(git config --get user.email)"       \
+		$uname_r
 
 	kdist log --no-pager --pretty="  + %s" --first-parent
 }

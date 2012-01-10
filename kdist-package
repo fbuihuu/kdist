@@ -120,7 +120,7 @@ package__list_output_devel_files () {
 #
 package_name=
 package_version=
-package_log=
+package_log=false
 package_archive=
 package_description=
 package_tag=
