@@ -63,25 +63,18 @@ package_firmware () (
 )
 
 #
-# The devel tarball is not complete: 'modules_prepare' target must still
-# be run.
+# The devel tarball is not complete: 'modules_prepare' target must
+# still be run and it's missing the output files (given by
+# package__list_output_devel_files()).
 #
-extract_devel () {
+# So this is can be used mostly to update a kernel config.
+#
+# Note: this is currently only used by kdist-config--propagate.
+#
+package_devel () (
 	git archive --format=tar --prefix=$prefix $rev \
 		$(package__list_devel_files --rev=$rev) \
-		$(package__list_arch_devel_files --rev=$rev) | \
-	tar -C $1 -xf -
-}
-
-package_devel () (
-	for file in $(package__list_output_devel_files); do
-		test -f $file ||
-		die "$file is missing, perhaps you forgot to build your kernel ?"
-		cp $file $tmpdir/$prefix
-	done
-	extract_devel $tmpdir &&
-	cd $tmpdir &&
-	tar -cf - ${prefix:-.}
+		$(package__list_arch_devel_files --rev=$rev)
 )
 
 suffix=tar
