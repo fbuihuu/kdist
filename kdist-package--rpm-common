@@ -154,7 +154,7 @@ __show_spec_changelog () {
 		"$(git config --get user.email)"       \
 		$uname_r
 
-	kdist log --no-pager --pretty="  + %s" --first-parent
+	kdist log --no-pager --pretty="  + %s" --first-parent $package_tag
 }
 
 show_spec_changelog () {
