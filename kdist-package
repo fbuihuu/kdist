@@ -114,6 +114,28 @@ package__list_output_devel_files () {
 	echo System.map
 }
 
+package__show_changelog () {
+	local from
+
+	if ! $package_log; then
+		return
+	fi
+
+	echo "%changelog"
+	printf "* %s %s <%s> %s\n" \
+		"$(LC_TIME=en_US date +"%a %b %d %Y")" \
+		"$(git config --get user.name)"        \
+		"$(git config --get user.email)"       \
+		$uname_r
+
+	#
+	# If we get here, a release has already been made
+	# (KERNLE_VERSION_PACKAGE is defined) therefore it's safe to
+	# call kdist-log.
+	#
+	kdist log --no-pager --pretty="  + %s" --first-parent $package_tag
+}
+
 #
 # The main function will init the following variables and will call a
 # package_xxx helper to generate the specific target package

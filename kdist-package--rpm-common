@@ -129,36 +129,8 @@ __show_spec () {
 	popd >/dev/null
 }
 
-# FIXME: nothing rpm specific here, should be moved to kdist-package.
-__show_spec_changelog () {
-	local from
-
-	if ! $package_log; then
-		return
-	fi
-
-	#
-	# Get the base of the log, the idea is simple: if a release
-	# has already been made (KERNLE_VERSION_PACKAGE is defined)
-	# then use the n-1 release otherwise don't log anything (we
-	# shouldn't have been called).
-	#
-	if ! test $KERNEL_VERSION_PACKAGE; then
-		die "BUG: show_spec_changelog has been called with package num unset"
-	fi
-
-	echo "%changelog"
-	printf "* %s %s <%s> %s\n" \
-		"$(LC_TIME=en_US date +"%a %b %d %Y")" \
-		"$(git config --get user.name)"        \
-		"$(git config --get user.email)"       \
-		$uname_r
-
-	kdist log --no-pager --pretty="  + %s" --first-parent $package_tag
-}
-
 show_spec_changelog () {
-	__show_spec_changelog | while read
+	package__show_changelog | while read
 	do
 		__show_one_line "$REPLY"
 	done
