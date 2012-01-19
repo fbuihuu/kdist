@@ -85,8 +85,18 @@ create__tag () {
 	local component=$1
 	local tag
 
+	echo "*** Entering '$component' repository ***"
 	kdist__cd_repository $component
 	git__check_clean_work_tree
+
+	echo -n "branch  : "
+	branch=$(git symbolic-ref -q HEAD)
+	case $branch in
+	"")	echo "detached !" ;;
+	*)	echo "$branch" ;;
+	esac
+	git --no-pager log -1 --format="subject : %s"
+	git --no-pager log -1 --format="commit  : %H%n"
 
 	tag=$(kdist tag list -n1 $ktag.\*)
 	case $tag in
@@ -145,6 +155,7 @@ case $component in
 	create__kernel_tag
 	kdist__cd_repository
 	for c in $(git submodule foreach -q 'echo $name'); do
+		echo
 		create__tag $c
 	done ;;
 kernel)
