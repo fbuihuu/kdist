@@ -13,7 +13,7 @@ export -f kdist
 #
 # The version can be changed during the installation.
 #
-KDIST_VERSION=v0.0
+KDIST_VERSION=v0.1
 
 kdist_version() (
 	local version
