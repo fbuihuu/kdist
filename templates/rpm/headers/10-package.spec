@@ -34,9 +34,9 @@ should use the '%{name}-devel' package instead.
 # Unfortunately we can't use "make outputmakefile" here because for
 # some reasons this target requires a .config installed.
 %if %no_source
-extra_opts="-C %{source_path} O=$(pwd)"
+extra_opts="O=$(pwd)"
 %endif
-make INSTALL_HDR_PATH=%{buildroot}/usr $extra_opts headers_install
+make -C %{source_path} INSTALL_HDR_PATH=%{buildroot}/usr $extra_opts headers_install
 
 %clean
 rm -rf %{buildroot}

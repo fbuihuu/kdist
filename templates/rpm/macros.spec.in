@@ -12,4 +12,10 @@
 %define build_srpm	@BUILD_SRPM@
 %define no_source	@NO_SOURCE@
 
-%define source_path	/usr/src/linux-%{src_uname_r}
+%define _source_path	/usr/src/linux-%{src_uname_r}
+
+%if %no_source
+%define source_path	%{_source_path}/
+%else
+%define source_path	./
+%endif

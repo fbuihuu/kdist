@@ -23,7 +23,7 @@ source $libexecdir/kdist-package--rpm-common
 
 
 create_archive () {
-	if test $target != source && test $no_source = 1; then
+	if test $no_source = 1; then
 		# create an empty archive
 		(
 			cd $SOURCES &&
@@ -44,6 +44,12 @@ package_other () {
 		show_spec $target
 		return
 	fi
+
+	# No point in making a source srpm package without the kernel
+	# source code.
+	case $target in
+	source)	no_source=0 ;;
+	esac
 	say "Generating '$target' package from kernel $src_uname_r"
 	create_archive $target &&
 	show_spec $target >$SPECS/$package_name.spec &&

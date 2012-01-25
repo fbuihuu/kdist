@@ -17,12 +17,12 @@ AutoReqProv:		no
 This package provides the whole kernel source files.
 
 %install
-mkdir -p %{buildroot}%{source_path}
-tar -xf %{SOURCE0} --strip-components=1 -C %{buildroot}%{source_path}
+mkdir -p %{buildroot}%{_source_path}
+tar -xf %{SOURCE0} --strip-components=1 -C %{buildroot}%{_source_path}
 
 %clean
 rm -rf %{buildroot}
 
 %files
 %defattr (-, root, root)
-%{source_path}
+%{_source_path}

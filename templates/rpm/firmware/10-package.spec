@@ -30,9 +30,9 @@ Firmware files needed by some devices.
 # Unfortunately we can't use "make outputmakefile" here because for
 # some reasons this target requires a .config installed.
 %if %no_source
-extra_opts="-C %{source_path} O=$(pwd)"
+extra_opts="O=$(pwd)"
 %endif
-make INSTALL_FW_PATH=%{buildroot}/lib/firmware $extra_opts firmware_install
+make -C %{source_path} INSTALL_FW_PATH=%{buildroot}/lib/firmware $extra_opts firmware_install
 
 %clean
 rm -rf %{buildroot}
