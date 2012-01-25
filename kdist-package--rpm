@@ -49,11 +49,11 @@ package_other () {
 }
 
 #
-# We can't have a build release number included in the kernel
-# release number since we would have to recompile the kernel
-# and we want to avoid that since we don't know how the user
-# did it. Therefore the build release number is only part of
-# the package name.
+# We can't have a build release number included in the kernel release
+# name (uname -r) since we would have to recompile the kernel and we
+# want to avoid that since we don't know how the user did
+# it. Therefore the build release number is only part of the package
+# name.
 #
 package_flavour () {
 	rpm_exclusive=$(config__read_architecture $1)
