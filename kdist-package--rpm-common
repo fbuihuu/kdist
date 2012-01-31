@@ -133,6 +133,15 @@ __show_spec () {
 	[ -f macros.spec.in ] && {
 		__show_one_file macros.spec.in
 	}
+	#
+	# If 'rpm_exclusive' is not set (ie for all targets except the
+	# binary one) then we include all supported architectures.
+	#
+	if test -z "$rpm_exclusive"; then
+		# assume no space in the dir name
+		rpm_exclusive=($echo */)
+		rpm_exclusive=${rpm_exclusive[*]%/}
+	fi
 	__show_one_section header
 	__show_one_section package
 	__show_one_section description
