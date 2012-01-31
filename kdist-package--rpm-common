@@ -183,9 +183,9 @@ rpm__architecture () {
 	done | sort | uniq | while read arch
 	do
 		case $arch in
-		x86_64)		echo "x86_64" ;;
-		i?86|x86_32)	echo "%ix86" ;;
-		arm*)		echo "%arm" ;;
+		x86_64)		echo x86_64 ;;
+		i?86|x86_32)	echo %ix86 ;;
+		arm*)		echo %arm ;;
 		*)		die "Unsupported architecture '$arch'"
 		esac
 	done
