@@ -73,12 +73,27 @@ __show_one_subsection () {
 	local header=$2
 	local footer=$3
 	local tmpdir=$(mktemp -d)
+	local merge
 
 	shopt -s nullglob extglob
 	for arch in $rpm_exclusive; do
 		for path in $(kdist__architecture $arch)/$specfile; do
 			i=$(basename ${path%%-*})
-			echo "$path $(rpm__architecture $arch)" >>$tmpdir/$i
+			merge=false
+			if test -f $tmpdir/$i; then
+				# try to merge with a previous registered arch
+				while read old_path unused; do
+					cmp -s $old_path $path && {
+						merge=true
+						break
+					}
+				done <$tmpdir/$i
+			fi
+			if $merge; then
+				sed -i -e "s|^${old_path}.*|& ${arch}|" $tmpdir/$i
+			else
+				echo "$path $arch" >>$tmpdir/$i
+			fi
 		done
 	done
 	for path in $specfile; do
@@ -92,11 +107,14 @@ __show_one_subsection () {
 		[ -n "$header" ] && __show_one_line "$header"
 		for f in $(ls -1v $tmpdir/*)
 		do
-			while read file arch; do
-				[ $arch ] && __show_one_line "%ifarch $arch"
+			while read file archs; do
+				# remove embedded newlines.
+				archs=$(echo $(rpm__architecture $archs))
+				[ -n "$archs" ] && __show_one_line "%ifarch $archs"
 				__show_one_file $file
-				[ $arch ] && __show_one_line "%endif"
+				[ -n "$archs" ] && __show_one_line "%endif"
 			done <$f
+			__show_one_line ""
 		done
 		[ -n "$footer" ] && __show_one_line "$footer"
 		__show_one_line ""
