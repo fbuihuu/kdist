@@ -1,11 +1,12 @@
 #! /bin/bash
 
-USAGE="--format=tar [-q] [-z|-j] [--prefix=<prefix>] [--output-dir|-o <dir>] [-r <rev>] source|headers|devel|firmware
+USAGE="--format=tar [-q] [-z|-j] [--prefix=<prefix>] [--output-dir|-o <dir>] [-r <rev>] source|headers|devel|firmware|tools
 
    source            Create a tarball of the kernel source
    headers           Create a tarball of the kernel headers
    devel             Create a tarball of the kernel devel files
    firmware          Create a tarball of all firmware
+   tools             Create a tarball of all kernel analysis tools
 
     --prefix         Prepend <prefix>/ to each filename in the archive
     -r               Specify the revision to archive
@@ -62,6 +63,23 @@ package_firmware () (
 	tar -cf - ${prefix:-.}
 )
 
+package_tools () (
+	extract_source $tmpdir &&
+	#
+	# Get rid of the unused files not needed by kernel tools
+	# compilation. Keep tools/ and include/ but also lib/, arch/
+	# and scripts/ since perf(1) is trying hard to reuse the
+	# kernel source code.
+	#
+	cd $tmpdir && (
+		cd ${prefix:-.}
+		rm -rf {block,crypto,drivers,fs,firmware,init,ipc} &&
+		rm -rf {kernel,mm,net,samples,security,sound} &&
+		rm -rf {usr,virt,Documentation}
+	)
+	tar -cf - ${prefix:-.}
+)
+
 #
 # The devel tarball is not complete: 'modules_prepare' target must
 # still be run and it's missing the output files (given by
@@ -114,7 +132,7 @@ do
 done
 
 case $#,$1 in
-1,source|1,headers|1,devel|1,firmware)
+1,source|1,headers|1,devel|1,firmware|1,tools)
 	;;
 *)
 	usage

@@ -4,11 +4,12 @@
 # environment (BUILD/, BUILDROOT/, etc...). Therefore --with-debuginfo
 # is only available when generating source rpm package.
 #
-USAGE="[--format=rpm] [-v] [-j<n>] [--with-devel] [--show-spec|--annotate-spec] [--spec=<specfile>] [--output-dir|-o <dir>] [source|headers|firmware]
+USAGE="[--format=rpm] [-v] [-j<n>] [--with-devel] [--show-spec|--annotate-spec] [--spec=<specfile>] [--output-dir|-o <dir>] [source|headers|firmware|tools/<name>]
 
    source            Package the kernel sources
    headers           Package the kernel header files
    firmware          Package the firmware
+   tools/<name>      Package a named kernel tool
 
    --output-dir      Use <dir> to store the resulting files
    --show-spec       Show the generated spec file and exit
@@ -30,22 +31,17 @@ package_source () {
 	rpm__rpmbuild -bb $SPECS/$package_name.spec
 }
 
-package_firmware () {
-	show_spec firmware >$SPECS/$package_name.spec &&
-	rpm__rpmbuild --define "_builddir $(pwd)" -bb $SPECS/$package_name.spec
-}
-
-package_headers () {
-	show_spec headers >$SPECS/$package_name.spec &&
-	rpm__rpmbuild --define "_builddir $(pwd)" -bb $SPECS/$package_name.spec
-}
-
 package_other () {
 	if test $spec_only; then
 		show_spec $1
 		return
 	fi
-	package_$1
+	if test $1 = source; then
+		package_source
+		return
+	fi
+	show_spec $1 >$SPECS/$package_name.spec &&
+	rpm__rpmbuild --define "_builddir $(pwd)" -bb $SPECS/$package_name.spec
 }
 
 #
@@ -126,7 +122,7 @@ if test $# -gt 1; then
 fi
 
 case $1 in
-firmware|headers|source)
+firmware|headers|source|tools/*)
 	;;
 '')
 	#

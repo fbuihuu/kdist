@@ -1,11 +1,12 @@
 #! /bin/bash
 
-USAGE="--format=srpm [-v] [--show-spec|--annotate-spec] [--spec=<specfile>] [--release=<num>] [--with-source] [--with-devel] [--with-debuginfo] [--output-dir|-o <dir>] [-r <tag>] [<flavour>|source|headers|firmware]
+USAGE="--format=srpm [-v] [--show-spec|--annotate-spec] [--spec=<specfile>] [--release=<num>] [--with-source] [--with-devel] [--with-debuginfo] [--output-dir|-o <dir>] [-r <tag>] [<flavour>|source|headers|firmware|tools/<name>]
 
    <flavour>         Package the kernel using the specified flavour
    source            Package the kernel sources
    headers           Package the kernel header files
    firmware          Package the firmware
+   tools/<name>      Package a named kernel tool
 
    --with-source     Build a package embedding the kernel source
    --with-devel      Build also the kernel devel package
@@ -34,7 +35,7 @@ create_archive () {
 		return
 	fi
 	kdist package --format=tar --prefix=$package_archive/ -r $package_tag \
-		-q -j -o $SOURCES/$package_archive.tar.bz2 $1
+		-q -j -o $SOURCES/$package_archive.tar.bz2 ${1%%/*}
 }
 
 package_other () {

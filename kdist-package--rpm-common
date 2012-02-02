@@ -129,7 +129,9 @@ __show_one_section () {
 }
 
 __show_spec () {
-	pushd ${1:-binaries} >/dev/null
+	pushd ${1:-binaries} &>/dev/null || {
+		die "Unknown kernel tool '$1'."
+	}
 	[ -f macros.spec.in ] && {
 		__show_one_file macros.spec.in
 	}

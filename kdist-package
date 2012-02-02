@@ -181,6 +181,8 @@ package__main () {
 
 		flavour=$(config__read_flavour .config)
 		package_name=kernel${flavour:+-$flavour} ;;
+	tools/*)
+		package_name=${target#tools/} ;;
 	*)
 		package_name=kernel-$target
 	esac
@@ -237,7 +239,7 @@ package__main () {
 	src_uname_r=$KERNEL_VERSION$scmversion
 
 	case $target in
-	firmware|headers|source)
+	firmware|headers|source|tools/*)
 		[ $package_with_debuginfo = 1 ] && {
 			die "Invalid --with-debuginfo option with '$target'."
 		}
