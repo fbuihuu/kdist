@@ -1,3 +1,6 @@
+# Add "--without doc" option to disable documentation generation
+%bcond_without doc
+
 Name:			%{name}
 Summary:		The power analysis tools for your processor
 URL:			http://www.kernel.org
