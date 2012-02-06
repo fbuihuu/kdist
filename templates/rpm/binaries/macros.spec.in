@@ -2,7 +2,4 @@
 
 %define exclusive	@RPM_EXCLUSIVE@
 
-%define build_devel	@BUILD_DEVEL@
-%define build_debug	@BUILD_DEBUG@
-
 %define kdevel_path	/usr/src/devel/%{uname_r}

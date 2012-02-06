@@ -79,8 +79,6 @@ buildrel_opt=--release=${release##*.}
 binary_opts=
 case $target in
 source)			buildrel_opt= ;;
-headers|firmware)	;;
-*)			binary_opts="--with-devel --with-debuginfo"
 esac
 cd $kernel_topdir
 kdist package --format=srpm $verbose -r $kernel_tag $buildrel_opt \

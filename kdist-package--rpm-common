@@ -1,12 +1,12 @@
 #! /bin/bash
 
 declare -a rpm_sources
+declare -a rpm_bconds
+
 rpm_log=false
 rpm_annotate_spec=false
 
 rpm_specfile=
-package_with_devel=0
-package_with_debuginfo=0
 
 __resolve_one_spec () {
 	local build_srpm=0
@@ -37,9 +37,7 @@ __resolve_one_spec () {
 		-e "s,@RPM_EXCLUSIVE@,$rpm_exclusive," \
 		-e "s,@ARCHIVE@,$package_archive," \
 		-e "s,@NO_SOURCE@,$no_source," \
-		-e "s,@BUILD_SRPM@,$build_srpm," \
-		-e "s,@BUILD_DEVEL@,$package_with_devel," \
-		-e "s,@BUILD_DEBUG@,$package_with_debuginfo," $1
+		-e "s,@BUILD_SRPM@,$build_srpm," $1
 
 	rm -f $tmpfile1 $tmpfile2
 }
@@ -124,8 +122,8 @@ __show_one_subsection () {
 
 __show_one_section () {
 	__show_one_subsection $1 "" ""
-	__show_one_subsection $1-devel "%if %build_devel" "%endif"
-	__show_one_subsection $1-debug "%if %build_debug" "%endif"
+	__show_one_subsection $1-devel "%if %{with devel}" "%endif"
+	__show_one_subsection $1-debug "%if %{with debuginfo}" "%endif"
 }
 
 __show_spec () {
@@ -228,11 +226,25 @@ rpm__mktemp () {
 	fi
 }
 
+rpm__add_bconds () {
+	case $1 in
+	--with=*)	with=--with; bconds=${1#--with=} ;;
+	--without=*)	with=--without; bconds=${1#--without=} ;;
+	esac
+	for ((i=1 ;; i++)); do
+		val=$(echo $bconds, | cut -d',' -f$i)
+		case $val in
+		'')	break ;;
+		*)	rpm_bconds+=($with $val)
+		esac
+	done
+}
+
 rpm__rpmbuild () {
 	(
 		[ "$verbose" != yes ] &&
 			exec >/dev/null 2>/dev/null
-		rpmbuild --define "_topdir $rpm_tmpdir" "$@"
+		rpmbuild --define "_topdir $rpm_tmpdir" ${rpm_bconds[*]} "$@"
 	) &&
 
 	for f in $(find $rpm_tmpdir/{SRPMS,RPMS} -type f); do

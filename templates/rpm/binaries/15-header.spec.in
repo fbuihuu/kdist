@@ -1,3 +1,6 @@
+%bcond_without devel
+%bcond_without debuginfo
+
 Name:			%{name}
 Version:		%{version}
 Release:		%{source_release}.%{build_release}
@@ -5,10 +8,6 @@ License:		GPLv2
 URL:			http://www.kernel.org
 ExclusiveArch:		%{exclusive}
 BuildRoot:		%{_tmppath}/%{name}-%{version}-root
-
-%if %build_debug
-%global __debug_package	1
-%endif
 
 %define debug_package	%{nil}
 %define __check_files	%{nil}
