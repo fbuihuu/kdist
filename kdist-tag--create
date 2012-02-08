@@ -85,8 +85,8 @@ create__tag () {
 	local component=$1
 	local tag
 
-	echo "*** Entering '$component' repository ***"
 	kdist__cd_repository $component
+	echo "*** Entering '$component' repository ***"
 	git__check_clean_work_tree
 
 	echo -n "branch  : "

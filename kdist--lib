@@ -91,7 +91,8 @@ kdist__get_repository () {
 
 kdist__cd_repository () {
 	kdist__get_repository >/dev/null
-	cd $(kdist__get_repository $1)
+	cd $(kdist__get_repository $1) 2>/dev/null ||
+	die "Unknown component '$1'."
 }
 
 kdist__set_repository () {
