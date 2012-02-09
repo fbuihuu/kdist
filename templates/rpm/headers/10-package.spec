@@ -2,7 +2,7 @@ Name:			%{name}
 Summary:		Linux kernel header files mostly used by your C library
 Version:		%{version}
 Release:		%{source_release}.%{build_release}
-License:		GPL v2
+License:		GPLv2
 Group:			System/Kernel and hardware
 URL:			http://www.kernel.org
 %if %build_srpm

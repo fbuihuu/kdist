@@ -2,7 +2,7 @@ Name:			%{name}
 Summary:		Linux kernel source files
 Version:		%{version}
 Release:		%{source_release}
-License:		GPL v2
+License:		GPLv2
 Group:			System/Kernel and hardware
 URL:			http://www.kernel.org
 Source0:		%{archive}.tar.bz2

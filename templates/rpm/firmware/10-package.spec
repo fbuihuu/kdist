@@ -2,7 +2,7 @@ Name:			%{name}
 Summary:		Linux kernel firmware files
 Version:		%{version}
 Release:		%{source_release}.%{build_release}
-License:		GPL v2
+License:		GPLv2
 Group:			System/Kernel and hardware
 URL:			http://www.kernel.org
 %if %build_srpm
