@@ -12,7 +12,7 @@ Buildarch:		noarch
 BuildRoot:		%{_tmppath}/%{name}-%{version}-root
 AutoReqProv:		no
 %if %no_source
-BuildRequires:          kernel-source = %{version}-%{source_release}
+BuildRequires:		kernel-source = %{version}-%{source_release}
 %endif
 
 %define debug_package	%{nil}
