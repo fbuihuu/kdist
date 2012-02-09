@@ -112,7 +112,6 @@ __show_one_subsection () {
 				__show_one_file $file
 				[ -n "$archs" ] && __show_one_line "%endif"
 			done <$f
-			__show_one_line ""
 		done
 		[ -n "$footer" ] && __show_one_line "$footer"
 		__show_one_line ""
@@ -132,6 +131,7 @@ __show_spec () {
 	}
 	[ -f macros.spec.in ] && {
 		__show_one_file macros.spec.in
+		__show_one_line ""
 	}
 	#
 	# If 'rpm_exclusive' is not set (ie for all targets except the

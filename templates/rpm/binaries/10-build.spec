@@ -1,3 +1,4 @@
+%build
 make oldconfig
 # Sanity check uname_r (it can be modified)
 test %{uname_r} = $(make -s kernelrelease)

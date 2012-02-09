@@ -1,3 +1,4 @@
+%install
 if grep -q CONFIG_MODULES=y .config
 then
 	#

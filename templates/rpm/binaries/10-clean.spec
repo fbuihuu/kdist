@@ -1,1 +1,2 @@
+%clean
 rm -rf %{buildroot}

@@ -1,3 +1,4 @@
+%prep
 %if %build_srpm
 %setup -q -n %{archive}
 cp %{_sourcedir}/%{uname_r}-%{asm}-defconfig .config

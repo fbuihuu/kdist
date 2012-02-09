@@ -1,0 +1,21 @@
+%bcond_without devel
+%bcond_without debuginfo
+
+Name:			%{name}
+Summary:		The Linux Kernel for Mandriva %{flavour} systems
+URL:			http://www.kernel.org
+Version:		%{version}
+Release:		%{source_release}.%{build_release}
+License:		GPLv2
+Group:			System/Kernel and hardware
+Provides:		kernel = %{version}-%{release}
+ExclusiveArch:		%{exclusive}
+BuildRoot:		%{_tmppath}/%{name}-%{version}-root
+@RPM_SOURCES@
+Requires:		kernel-firmware
+%if %no_source
+BuildRequires:		kernel-source = %{version}-%{source_release}
+%endif
+
+%define debug_package	%{nil}
+%define __check_files	%{nil}
