@@ -1,5 +1,4 @@
+# binary specific macros
 %define flavour		@FLAVOUR@
-
 %define exclusive	@RPM_EXCLUSIVE@
-
 %define kdevel_path	/usr/src/devel/%{uname_r}
