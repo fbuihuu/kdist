@@ -17,7 +17,7 @@ __resolve_one_spec () {
 	[ $package_format == srpm ] && build_srpm=1
 
 	if test -z "$package_description"; then
-		package_description="This %{name} is for testing purpose only"
+		package_description="This %{name} is for testing purpose only."
 	fi
 	echo "$package_description" >$tmpfile1
 

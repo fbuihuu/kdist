@@ -29,12 +29,19 @@ config_info__get_name () {
 	echo $__current_config_name
 }
 
-config_info__get_description () {
-	echo "$__current_config_desc"
-}
-
 config_info__get_filter () {
 	echo "$__current_config_filter"
+}
+
+config_info__get_description () {
+	local tmpfile=$(mktemp)
+
+	# Clean up the description by removing repeated empty lines and any
+	# empty lines at start and at end.
+	echo "$__current_config_desc" | cat -s >$tmpfile
+	while test -z "$(sed -ne  1p $tmpfile)"; do sed -ie  1d $tmpfile; done
+	while test -z "$(sed -ne \$p $tmpfile)"; do sed -ie \$d $tmpfile; done
+	cat $tmpfile; rm -f $tmpfile
 }
 
 #
