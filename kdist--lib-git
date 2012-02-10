@@ -50,16 +50,17 @@ git__scmversion () {
 
 	if test "$1" = "--short"; then
 		short=true
+		shift
 	fi
 
-	if test -z "$(git describe --exact-match 2>/dev/null)"; then
+	if test -z "$(git describe --exact-match $1 2>/dev/null)"; then
 		if $short; then
 			echo "+"
 			return
 		fi
                 # If we are past a tagged commit (like
                 # "v2.6.30-rc5-302-g72357d5"), we pretty print it.
-                if atag="`git describe 2>/dev/null`"; then
+                if atag=$(git describe $1 2>/dev/null); then
                         echo "$atag" | awk -F- '{printf("-%05d-%s", $(NF-1),$(NF))}'
                 else
 			# If we don't have a tag at all we print -g{commitish}.

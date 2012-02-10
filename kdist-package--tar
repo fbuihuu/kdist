@@ -23,7 +23,7 @@ extract_source () {
 	# generating the localversion stuff, we generate .scmversion
 	# file containing its value so Kbuild can figure it out later.
 	#
-	echo -n $(git__scmversion) >$1/$prefix/.scmversion
+	echo -n $(git__scmversion $rev) >$1/$prefix/.scmversion
 }
 
 package_source () {
