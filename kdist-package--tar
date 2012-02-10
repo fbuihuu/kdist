@@ -182,9 +182,10 @@ fi
 #
 # Setup the revision
 #
-if ! test $rev; then
-	rev=$(git describe --tags --abbrev=4 HEAD)
-fi
+case $rev in
+HEAD|"")
+	rev=$(git describe --tags --abbrev=4 HEAD) ;;
+esac
 
 tar=${tar:-kernel-$1-${rev#v}.$suffix}
 if test "$output_directory"; then
