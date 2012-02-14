@@ -1,7 +1,7 @@
 #! /bin/bash
 
 declare -a rpm_sources
-declare -a rpm_bconds
+declare -A rpm_bconds
 
 rpm_log=false
 rpm_annotate_spec=false
@@ -227,6 +227,8 @@ rpm__mktemp () {
 }
 
 rpm__add_bconds () {
+	local bconds
+
 	case $1 in
 	--with=*)	with=--with; bconds=${1#--with=} ;;
 	--without=*)	with=--without; bconds=${1#--without=} ;;
@@ -235,16 +237,22 @@ rpm__add_bconds () {
 		val=$(echo $bconds, | cut -d',' -f$i)
 		case $val in
 		'')	break ;;
-		*)	rpm_bconds+=($with $val)
+		*)	rpm_bconds[$val]=$with
 		esac
 	done
 }
 
 rpm__rpmbuild () {
 	(
+		local bconds
 		[ "$verbose" != yes ] &&
 			exec >/dev/null 2>/dev/null
-		rpmbuild --define "_topdir $rpm_tmpdir" ${rpm_bconds[*]} "$@"
+		# bconds are only usefull when building binary rpm
+		# packages but they don't hurt in case of src.rpm.
+		for val in ${!rpm_bconds[*]}; do
+			bconds+="${rpm_bconds[$val]} $val "
+		done
+		rpmbuild --define "_topdir $rpm_tmpdir" $bconds "$@"
 	) &&
 
 	for f in $(find $rpm_tmpdir/{SRPMS,RPMS} -type f); do
