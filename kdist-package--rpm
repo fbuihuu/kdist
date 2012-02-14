@@ -1,6 +1,6 @@
 #! /bin/bash
 
-USAGE="[--format=rpm] [-v] [-j<n>] [--with-devel] [--show-spec|--annotate-spec] [--spec=<specfile>] [--output-dir|-o <dir>] [--with=...] [--without=...] [source|headers|firmware|tools/<name>]
+USAGE="[--format=rpm] [-v] [--with-devel] [--show-spec|--annotate-spec] [--spec=<specfile>] [--output-dir|-o <dir>] [--with=...] [--without=...] [source|headers|firmware|tools/<name>]
 
    source            Package the kernel sources
    headers           Package the kernel header files
@@ -14,8 +14,6 @@ USAGE="[--format=rpm] [-v] [-j<n>] [--with-devel] [--show-spec|--annotate-spec] 
 
    --with=...        Pass with conditionnals to generate the rpm package
    --without=...     Pass without conditionnals to generate the rpm package
-
-   -j<n>             Used by make
 "
 
 source $libexecdir/kdist-package--rpm-common
