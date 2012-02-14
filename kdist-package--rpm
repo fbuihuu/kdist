@@ -84,6 +84,11 @@ package_flavour () {
 no_source=0
 spec_only=
 
+# By default, we don't want those sub packages.
+rpm__add_bconds --without=doc
+rpm__add_bconds --without=devel
+rpm__add_bconds --without=debuginfo
+
 while
 	case $1 in
 	-v|--verbose)
