@@ -116,14 +116,31 @@ kdist__set_repository () {
 # KERNEL_VERSION_xxx variables
 #
 kdist__setup_kernel_version () {
+	local rev=${1:-HEAD}
+	local VERSION PATCHLEVEL SUBLEVEL
+
 	#
-	# The kernel version is given by 'make kernelversion'.
+	# KERNEL_VERSION is the kernel version given by "make
+	# kernelversion". Therefore it's not the same as the version
+	# given by 'uname -r' since it doesn't have the auto local
+	# version stuff for example.
 	#
-	# Note: this may not be the same as the version given by
-	# 'uname -r' since it doesn't have the auto local version
-	# stuff for example.
+	# Note: "make kernelversion" is not used since we want to
+	# retreive the kernel version for any revs and "make
+	# kernelversion" needs more than the topdir Makefile.
 	#
-	KERNEL_VERSION=${1:-$(make -s kernelversion)}
+
+	# warm up...
+	git show $1:Makefile >/dev/null || exit
+
+	while read line; do
+		eval $line
+	done < <(git show $1:Makefile | head -n4 | tr -d ' ')
+
+	KERNEL_VERSION+=${VERSION}
+	KERNEL_VERSION+=${PATCHLEVEL:+.$PATCHLEVEL}
+	KERNEL_VERSION+=${SUBLEVEL:+.$SUBLEVEL}
+	KERNEL_VERSION+=${EXTRAVERSION}
 
 	#
 	# Extract the package num version if any. The package num

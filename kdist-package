@@ -145,7 +145,7 @@ package_version=
 package_log=false
 package_archive=
 package_description=
-package_tag=
+package_tag=HEAD
 source_release=
 build_release=0
 local_build_release=
@@ -155,16 +155,10 @@ package__main () {
 	local target=$1
 	local scmversion=
 
-	# check the repo validity
-	kdist__cd_kernel_topdir || exit
-
-	# tag validity must be checked by the caller.
-	kdist__setup_kernel_version ${package_tag#v}
-
-	if ! test $package_tag; then
-		package_tag=HEAD
-		scmversion=$(git__scmversion)
-	fi
+	kdist__cd_kernel_topdir &&
+	kdist__setup_kernel_version $package_tag &&
+	scmversion=$(git__scmversion $package_tag) ||
+	exit
 
 	package_version=$KERNEL_VERSION_BASE
 
