@@ -68,14 +68,15 @@ package_flavour () {
 	package__list_arch_devel_files $asmarch >$SOURCES/${uname_r}-$asmarch-develfiles.list ||
 	return
 
-	#
-	# Generate the ugliness and call the only tool that can parse
-	# it. We still take care of a potential file with the same
-	# name.
-	#
+	# we setup '_builddir' and 'package_archive' in order to have
+	# a not too bad debuginfo package. Indeed 'comp_dir' can't be
+	# rewritten completely due to the broken debugedit crap tool,
+	# but only a part of it. So we have to keep at least the last
+	# path component, which is the current directory. Oh well...
+	package_archive=$(basename $(pwd))
 	show_spec >$SPECS/$package_name.spec &&
 	rpmbuild --nobuild $SPECS/$package_name.spec &&
-	rpm__rpmbuild --define "_builddir $(pwd)" -bb $SPECS/$package_name.spec
+	rpm__rpmbuild --define "_builddir $(dirname $(pwd))" -bb $SPECS/$package_name.spec
 }
 
 #

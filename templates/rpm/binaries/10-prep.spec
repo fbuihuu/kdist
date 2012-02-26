@@ -1,5 +1,6 @@
+%if %{build_srpm}
+
 %prep
-%if %build_srpm
 %setup -q -n %{archive}
 cp %{_sourcedir}/%{uname_r}-%{asm}-defconfig .config
 
@@ -10,5 +11,10 @@ make -C %{source_path} O=$(pwd) outputmakefile
 # localversion is updated here so the user can increase
 # the release number anytime.
 echo -n .%{build_release} >localversion
+
+%else
+
+%prep
+%setup -T -D -n %{archive}
 
 %endif
