@@ -221,8 +221,9 @@ rpm__mktemp () {
 	if ! test $rpm_tmpdir; then
 		rpm_tmpdir=$(mktemp -d --tmpdir=$rpm_output_directory)
 		mkdir -p $rpm_tmpdir/{SOURCES,SPECS}
-		SPECS=$rpm_tmpdir/SPECS
-		SOURCES=$rpm_tmpdir/SOURCES
+		TOPDIR=$rpm_tmpdir
+		SPECS=$TOPDIR/SPECS
+		SOURCES=$TOPDIR/SOURCES
 	fi
 }
 
@@ -252,7 +253,7 @@ rpm__rpmbuild () {
 		for val in ${!rpm_bconds[*]}; do
 			bconds+="${rpm_bconds[$val]} $val "
 		done
-		rpmbuild --define "_topdir $rpm_tmpdir" $bconds "$@"
+		rpmbuild --define "_topdir $TOPDIR" $bconds "$@"
 	) &&
 
 	for f in $(find $rpm_tmpdir/{SRPMS,RPMS} -type f); do
