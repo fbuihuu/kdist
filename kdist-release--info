@@ -13,7 +13,7 @@ esac
 kdist__cd_repository releases
 
 cd $1 2>/dev/null ||
-die "Invalid release."
+die "Invalid release '$1'."
 
 case $name in
 "")	cat Versions ;;
