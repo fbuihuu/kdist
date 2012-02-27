@@ -1,6 +1,6 @@
 #! /bin/bash
 
-USAGE="[--format=rpm] [-v] [--with-devel] [--show-spec|--annotate-spec] [--spec=<specfile>] [--output-dir|-o <dir>] [--with=...] [--without=...] [source|headers|firmware|tools/<name>]
+USAGE="[--format=rpm] [-v] [--show-spec|--annotate-spec] [--spec=<specfile>] [--output-dir|-o <dir>] [--with=...] [--without=...] [source|headers|firmware|tools/<name>]
 
    source            Package the kernel sources
    headers           Package the kernel header files
