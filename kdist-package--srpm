@@ -142,7 +142,7 @@ package_flavour () {
 		# the config files
 		say "Installing config in SOURCES/${uname_r}_$dst"
 		mv $SOURCES/$dst $SOURCES/${uname_r}-$dst &&
-		rpm_sources+=(${uname_r}-$dst) &&
+		rpm_sources+=(%{uname_r}-$dst) &&
 
 		#
 		# Always generate the devel file list for this
@@ -153,7 +153,7 @@ package_flavour () {
 		if ! test -f $list; then
 			say "Generating '$asmarch' devel file list"
 			package__list_arch_devel_files $asmarch >$list &&
-			rpm_sources+=(${list#*SOURCES/})
+			rpm_sources+=(%{uname_r}-$asmarch-develfiles.list)
 		fi ||
 		return
 	done
@@ -164,8 +164,8 @@ package_flavour () {
 	say "Generating 'common' devel file list"
 	package__list_devel_files >$SOURCES/${uname_r}-develfiles.list &&
 	package__list_output_devel_files >$SOURCES/${uname_r}-output-develfiles.list &&
-	rpm_sources+=(${uname_r}-develfiles.list) &&
-	rpm_sources+=(${uname_r}-output-develfiles.list) ||
+	rpm_sources+=(%{uname_r}-develfiles.list) &&
+	rpm_sources+=(%{uname_r}-output-develfiles.list) ||
 	return
 
 	#
