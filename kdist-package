@@ -146,8 +146,8 @@ package_log=false
 package_archive=
 package_description=
 package_tag=HEAD
-source_release=
-build_release=0
+release_source=
+release_build=0
 local_build_release=
 src_uname_r=
 
@@ -168,7 +168,7 @@ package__main () {
 	#
 	case $target in
 	'')
-		test $build_release -eq 0 ||
+		test $release_build -eq 0 ||
 			die "You must specify a target with --release."
 		test -f .config ||
 			die ".config is missing."
@@ -185,7 +185,7 @@ package__main () {
 	# When releasing, we request the current head to be at a
 	# tagged commit.
 	#
-	if test $scmversion && test $build_release -ne 0; then
+	if test $scmversion && test $release_build -ne 0; then
 		die "--release wants a tagged commit."
 	fi
 
@@ -211,12 +211,12 @@ package__main () {
 	# example, if the package is rebuilt with a different
 	# toolchain, if the specfiles has been modified etc...
 	#
-	source_release=${KERNEL_VERSION_PACKAGE:-0}$scmversion
-	package_archive=$package_name-$KERNEL_VERSION_BASE-$source_release
+	release_source=${KERNEL_VERSION_PACKAGE:-0}$scmversion
+	package_archive=$package_name-$KERNEL_VERSION_BASE-$release_source
 
 	case $target in
 	source)
-		test $build_release -ne 0 &&
+		test $release_build -ne 0 &&
 			die "'source' target has no build release number." ;;
 	*)
 		# see if the caller want to append a local build release number
@@ -225,8 +225,8 @@ package__main () {
 			die "Missing .version, compile your kernel first."
 			local_build_release=.$(< .version)
 		fi
-		build_release+=$local_build_release
-		package_archive+=.$build_release
+		release_build+=$local_build_release
+		package_archive+=.$release_build
 	esac
 
 	# For binaries target, the exact value will be calculated later.
@@ -239,7 +239,7 @@ package__main () {
 	esac
 
 	# Generate the list of the config files to use
-	case $target,$build_release in
+	case $target,$release_build in
 	'',0|'',0.*)
 		configs=".config" ;;
 	*,[^0])

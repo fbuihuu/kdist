@@ -31,8 +31,8 @@ __resolve_one_spec () {
 		-e "s,@RPM_VERSION@,${package_version//-/.}," \
 		-e "s,@SRC_UNAME_R@,$src_uname_r," \
 		-e "s,@UNAME_R@,$uname_r," \
-		-e "s,@SOURCE_RELEASE@,${source_release//-/.}," \
-		-e "s,@BUILD_RELEASE@,$build_release," \
+		-e "s,@SOURCE_RELEASE@,${release_source//-/.}," \
+		-e "s,@BUILD_RELEASE@,$release_build," \
 		-e "s,@FLAVOUR@,${package_name#kernel-}," \
 		-e "s,@RPM_EXCLUSIVE@,$rpm_exclusive," \
 		-e "s,@ARCHIVE@,$package_archive," \

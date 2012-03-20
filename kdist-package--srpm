@@ -79,7 +79,7 @@ package_flavour () {
 	# the specfile so the user can increment the release build
 	# number later.
 	#
-	echo ".$build_release" >$archive/localversion
+	echo ".$release_build" >$archive/localversion
 
 	#
 	# Calculate the exact value of 'uname_r' and do some sanity
@@ -227,7 +227,7 @@ while
 	-v|--verbose)
 		verbose=yes ;;
 	--release=*)
-		build_release=${1#*=} ;;
+		release_build=${1#*=} ;;
 	--show-spec)
 		spec_only=yes ;;
 	--annotate-spec)
