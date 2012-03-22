@@ -1,8 +1,8 @@
 #! /bin/bash
 
 USAGE="diff [options]
-     ...     diff [options] <config>
-     ...     diff [options] <file> <file>
+     ...     diff [options] <file|pattern>
+     ...     diff [options] <file|pattern> <file|pattern>
 
 Options:
 
