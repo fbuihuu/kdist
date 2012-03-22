@@ -54,8 +54,8 @@ case $# in
 	# DB|FILE <-> DB|FILE
 	#
 	one=$1; two=$2
-	{ test -f "$one" || one=$(config__resolve_files --fullpath "$1"); } &&
-	{ test -f "$two" || two=$(config__resolve_files --fullpath "$2"); } ;;
+	{ test -e "$one" || one=$(config__resolve_files --fullpath "$1"); } &&
+	{ test -e "$two" || two=$(config__resolve_files --fullpath "$2"); } ;;
 *)
 	usage
 esac || exit
