@@ -53,6 +53,7 @@ package__list_arch_devel_files () {
 		*Kbuild*)		echo $f ;;
 		*Makefile*)		echo $f ;;
 		*asm-offsets*)		echo $f ;;
+		*/syscalls/*)		echo $f ;;
 		esac
 	done
 }
