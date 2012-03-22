@@ -1,13 +1,15 @@
 #! /bin/bash
 
-USAGE="propagate [-i] [--no-verify] [<pattern>...]"
+USAGE="propagate [-i] [--no-verify] [--origin=<pattern>] [<pattern>...]"
 
 stage_opts=
 verify=yes
+origin=
 
 while
 	case $1 in
 	-i)		stage_opts="-i -p" ;;
+	--origin=*)	origin=${1#--origin=} ;;
 	--no-verify)	verify= ;;
 	-*)		usage ;;
 	*)		break
@@ -55,9 +57,13 @@ if ! test -f .config; then
 fi
 
 patch=$tmpdir/diff
-if ! kdist config diff --raw >$patch; then
-	die "Current config is not tracked."
-fi
+kdist config diff --raw $origin >$patch || {
+	if test -z "$origin"; then
+		warn "Can't generate the patch to propagate, probably because"
+		warn "the origin file can't be found. You can try to pass '--origin'."
+	fi
+	exit 1
+}
 
 if ! test -s $patch; then
 	die "No local changes to propagate"
@@ -88,7 +94,7 @@ fi ||
 exit
 
 if ! test "$targets"; then
-	die "No config files match '$@'"
+	die "No config files match '${@:-<empty>}' pattern."
 fi
 
 #
