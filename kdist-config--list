@@ -20,6 +20,6 @@ if test $# -ne 1; then
 	usage
 fi
 
-# we need a kernel repository to resolve the pattern.
-kdist__cd_kernel_topdir &&
+# check for the presence of a kernel repository is done later since
+# it's not mandatory and depends on the pattern.
 config__resolve_files $type_opt $fullpath_opt "$@"
