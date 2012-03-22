@@ -28,37 +28,35 @@ done
 #
 # Sort out the config files to compare
 #
+#     0: .config <-> <pattern>
+#     1: .config <-> <pattern>|<file>
+#     2: <pattern>|<file> <-> <pattern>|<file>
+#
 case $# in
 0|1)
-	#
-	# 0: .config <-> [DB]
-	# 1: .config <->  DB | FILE
-	#
 	kdist__cd_kernel_topdir &&
-	two=.config &&
-	case $# in
-	0)
-		test -f .config ||
-		die ".config is missing."
-		pat=$(config__read_flavour .config)
-		test -n "$pat" ||
-		die ".config doesn't have a flavour, you must specify one."
-		pat=$(config__read_architecture .config)/$pat
-		;;
-	1)
-		pat=$1
-	esac &&
-	one=$(config__resolve_files --fullpath "$pat") ;;
+	test -f .config || die ".config is missing."
+	two=.config
+esac
+
+case $# in
+0)
+	pat=$(config__read_flavour .config)
+	test -n "$pat" || die ".config doesn't have a flavour, you must specify one."
+	pat=$(config__read_architecture .config)/$pat
+	one=$(config__resolve_files --fullpath "$pat") || exit
+	;;
 2)
-	#
-	# DB|FILE <-> DB|FILE
-	#
-	one=$1; two=$2
-	{ test -e "$one" || one=$(config__resolve_files --fullpath "$1"); } &&
-	{ test -e "$two" || two=$(config__resolve_files --fullpath "$2"); } ;;
+	two=$2
+	test -e "$two" || two=$(config__resolve_files --fullpath "$2") || exit
+	;&
+1)
+	one=$1
+	test -e "$one" || one=$(config__resolve_files --fullpath "$1") || exit
+	;;
 *)
 	usage
-esac || exit
+esac
 
 if test -z "$one"; then
 	die "Pattern '${1:-$pat}' gives empty match."
