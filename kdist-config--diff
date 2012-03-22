@@ -85,6 +85,9 @@ declare -i hash_two_size=0
 # First hash all 'one's values
 #
 init_hash_table () {
+	test -r "$2" || die "can't read '$2'"
+	test -d "$2" && die "'$2' is a directory"
+
 	while read line
 	do
 		name=${line##*CONFIG_}
@@ -97,11 +100,12 @@ init_hash_table () {
 		esac
 		eval $1[$name]='$val'
 		eval $1_size+=1
-	done < $2
+	done <$2
 }
 
-init_hash_table hash_one $one
-init_hash_table hash_two $two
+init_hash_table hash_one $one &&
+init_hash_table hash_two $two ||
+exit
 
 #
 # Print a change
