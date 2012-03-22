@@ -83,7 +83,11 @@ then
 	test -n "$name" ||
 	die "Missing CONFIG_NAME, don't know where to propagate changes."
 
-	targets=$(config__resolve_files $name)
+	arch=$(config__read_architecture .config) &&
+	test -n "$arch" ||
+	die "Unable to determine the architecture of the current config."
+
+	targets=$(config__resolve_files $arch/$name)
 else
 	#
 	# The specified targets are patterns resolved if needed using
