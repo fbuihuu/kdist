@@ -102,6 +102,8 @@ fi
 # intact (therefore they won't be restored in case of no errors since
 # git-apply won't be called).
 #
+kdist__cd_repository configs
+
 for t in $targets; do
 	case $(git status --porcelain -- $t) in
 	" "[MD]" "*)
@@ -211,8 +213,6 @@ verify_config () {
 	popd >/dev/null
 }
 
-
-kdist__cd_repository configs
 
 for t in $targets
 do
