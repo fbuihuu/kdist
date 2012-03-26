@@ -30,7 +30,7 @@ cleanup_on_exit () {
 }
 
 cleanup_on_error () {
-	cd $(kdist__get_repository)
+	cd $(kdist__get_repository configs)
 	git reset -q --hard HEAD &&
 	if test $stash_id; then
 		if ! git stash apply -q --index $stash_id; then
