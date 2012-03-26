@@ -134,16 +134,18 @@ config__resolve_files () {
 
 		case $pattern in
 		*/*/*)
-			config__ls_files "${opts[@]}" "$pattern" ;;
-		*/*)
-			kdist__cd_kernel_topdir &&
-			kdist__setup_kernel_version &&
-			config__ls_files "${opts[@]}" "$KERNEL_VERSION_BASE/$pattern" ;;
+			;;
 		*)
 			kdist__cd_kernel_topdir &&
-			kdist__setup_kernel_version &&
-			config__ls_files "${opts[@]}" "$KERNEL_VERSION_BASE/$(uname -m)/$pattern"
+			kdist__setup_kernel_version ||
+			return
+
+			case $pattern in
+			*/*)	pattern="$KERNEL_VERSION_BASE/$pattern" ;;
+			*)	pattern="$KERNEL_VERSION_BASE/$(uname -m)/$pattern" ;;
+			esac
 		esac
+		config__ls_files "${opts[@]}" "$pattern"
 	done
 }
 
