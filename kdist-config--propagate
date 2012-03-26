@@ -1,11 +1,12 @@
 #! /bin/bash
 
-USAGE="propagate [-i] [--no-verify] [--type=<type>] [--origin=<pattern>] [<pattern>...]"
+USAGE="propagate [-i] [-n|--dry-run] [--no-verify] [--type=<type>] [--origin=<pattern>] [<pattern>...]"
 
 stage_opts=
 resolve_opts=
 verify=yes
 origin=
+dry_run=
 
 while
 	case $1 in
@@ -13,6 +14,7 @@ while
 	--origin=*)	origin=${1#--origin=} ;;
 	--no-verify)	verify= ;;
 	--type=*)	resolve_opts="--type=${1#--type=}" ;;
+	-n|--dry-run)	dry_run=yes ;;
 	-*)		usage ;;
 	*)		break
 	esac
@@ -230,4 +232,6 @@ do
 done
 
 
-trap cleanup_on_exit 0
+if ! test $dry_run; then
+	trap cleanup_on_exit 0
+fi
