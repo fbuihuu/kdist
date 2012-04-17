@@ -139,9 +139,63 @@ config__resolve_files () {
 }
 
 #
+# Return a tag description given a configuration version.
+#
+declare -A kernel_tag_map
+
+__to_kern_tag () {
+	local ktag
+	#
+	# First try with current HEAD: if the closest revision is the
+	# same as the config one then just use HEAD
+	#
+	ktag=$(git describe HEAD) &&
+	case $ktag in
+	$1*)	echo $ktag; return
+	esac
+
+	# Otherwise find the most recent distribution tag
+	ktag=$(kdist tag list -n1 $1\*)
+	if test "$ktag"; then
+		echo $ktag
+		return
+	fi
+
+	# Or try to pick the latest matching kernel tag. Note that
+	# "x.y.z-rc" will be prefered over "x.y.z"
+	ktag=$(git tag -l $1\* | sort -V | tail -1)
+	if test "$ktag"; then
+		echo $ktag
+		return
+	fi
+
+	# Just ask to the user...
+	warn -n "Enter kernel revision to use for checking this config: "
+	while read ktag
+	do
+		git rev-parse -q --verify $ktag >/dev/null && {
+			# Always use a tag description.
+			ktag=$(git describe $ktag) &&
+			break
+		}
+		warn -n "Invalid revision, try again: "
+	done
+	echo $ktag
+}
+
+config__map_to_kernel () {
+	local vers=v${1#v}
+
+	if ! test ${kernel_tag_map[$vers]}; then
+		kernel_tag_map[$vers]=$(__to_kern_tag $vers)
+	fi &&
+	echo ${kernel_tag_map[$vers]}
+}
+
+#
 # start the config sub command
 #
-script=$libexecdir/kdist-$kdist_command--$subcommand
+script=$libexecdir/kdist-$kdist_command--$kdist_subcommand
 if ! test -f "$script"; then
 	usage
 fi

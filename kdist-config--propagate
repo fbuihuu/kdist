@@ -127,57 +127,6 @@ trap cleanup_on_error 0
 #
 # convert a config revision into a kernel tag
 #
-declare -A hashtable
-
-__to_kern_rev () {
-	local krev
-	#
-	# First try with current HEAD: if the closest revision is the
-	# same as the config one then just use HEAD
-	#
-	krev=$(git describe HEAD) &&
-	case $krev in
-	$1*)	echo $krev; return
-	esac
-
-	# Otherwise find the most recent distribution tag
-	krev=$(kdist tag list -n1 $1\*)
-	if test "$krev"; then
-		echo $krev
-		return
-	fi
-
-	# Or try to pick the latest matching kernel tag. Note that
-	# "x.y.z-rc" will be prefered over "x.y.z"
-	krev=$(git tag -l $1\* | sort -V | tail -1)
-	if test "$krev"; then
-		echo $krev
-		return
-	fi
-
-	# Just ask to the user...
-	warn -n "Enter kernel revision to use for checking this config: "
-	while read krev
-	do
-		git rev-parse -q --verify $krev >/dev/null && {
-			# Always use a tag description.
-			krev=$(git describe $krev) &&
-			break
-		}
-		warn -n "Invalid revision, try again: "
-	done
-	echo $krev
-}
-
-conf_to_kern_rev () {
-	local crev=v${1#v}
-
-	if ! test ${hashtable[$crev]}; then
-		hashtable[$crev]=$(__to_kern_rev $crev)
-	fi &&
-	echo ${hashtable[$crev]}
-}
-
 verify_config () {
 	local config=$(readlink -f $1)
 	local conf_rev=${1%%/*}
@@ -189,7 +138,7 @@ verify_config () {
 
 	pushd $kernel_path >/dev/null
 
-	kern_rev=$(conf_to_kern_rev $conf_rev) &&
+	kern_rev=$(config__map_to_kernel $conf_rev) &&
 	echo "Updating $1 with $kern_rev kernel..." ||
 	exit
 
