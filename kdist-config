@@ -17,19 +17,8 @@ The 'config' commands are:
 
 See 'kdist config <command> --help' for more information on a specific command."
 
-#
-# For now nothing interesting to see here.
-#
-kdist_subcommand=$1
+readonly kdist_subcommand=$1
 shift
-
-
-case $kdist_subcommand in
-apply|diff|import|info|install|list|upgrade|propagate)
-	;;
-*)
-	usage
-esac
 
 #
 # Some internal config helpers.
@@ -152,4 +141,8 @@ config__resolve_files () {
 #
 # start the config sub command
 #
-source $libexecdir/kdist-$kdist_command--$kdist_subcommand "$@"
+script=$libexecdir/kdist-$kdist_command--$subcommand
+if ! test -f "$script"; then
+	usage
+fi
+source "$script" "$@"
