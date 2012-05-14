@@ -257,7 +257,7 @@ package__main () {
 
 		configs=$(kdist config list --fullpath $package_tag/\*/$target) &&
 		test -n "$configs" ||
-		die "No kernel config files exists for '$target'."
+		die "No kernel config files exist for '$target'."
 	esac &&
 
 	package_flavour $configs || {
