@@ -155,7 +155,7 @@ package_flavour () {
 		list=$SOURCES/${uname_r}-$asmarch-develfiles.list
 		if ! test -f $list; then
 			say "Generating '$asmarch' devel file list"
-			package__list_arch_devel_files $asmarch >$list &&
+			package__list_arch_devel_files --rev=$rev $asmarch >$list &&
 			rpm_sources+=(%{uname_r}-$asmarch-develfiles.list)
 		fi ||
 		return
@@ -165,7 +165,7 @@ package_flavour () {
 	# Append other extra files to the archive
 	#
 	say "Generating 'common' devel file list"
-	package__list_devel_files >$SOURCES/${uname_r}-develfiles.list &&
+	package__list_devel_files --rev=$rev >$SOURCES/${uname_r}-develfiles.list &&
 	package__list_output_devel_files >$SOURCES/${uname_r}-output-develfiles.list &&
 	rpm_sources+=(%{uname_r}-develfiles.list) &&
 	rpm_sources+=(%{uname_r}-output-develfiles.list) ||
