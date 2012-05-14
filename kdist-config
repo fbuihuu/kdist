@@ -13,6 +13,7 @@ The 'config' commands are:
    install      Set up a config for the tracked kernel
    list         List available configs matching the given pattern
    propagate    Propagate a change to specified configs
+   update       Update configurations using a given kernel
    upgrade      Use a template to upgrade a set of configurations
 
 See 'kdist config <command> --help' for more information on a specific command."
@@ -136,6 +137,24 @@ config__resolve_files () {
 		esac
 		config__ls_files "${opts[@]}" "$pattern"
 	done
+}
+
+#
+# The default pattern is based on a passed configuration file and the
+# version of the current kernel.
+#
+config__default_pattern () {
+	local name arch
+
+	name=$(config__read_flavour $1) &&
+	test -n "$name" ||
+	die "Missing CONFIG_NAME, don't know where to propagate changes."
+
+	arch=$(config__read_architecture $1) &&
+	test -n "$arch" ||
+	die "Unable to determine the architecture of the current config."
+
+	echo $arch/$name
 }
 
 #

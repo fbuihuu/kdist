@@ -56,10 +56,6 @@ kdist__cd_kernel_topdir &&
 kernel_path=$(pwd) ||
 exit
 
-if ! test -f .config; then
-	die ".config is missing, aborting."
-fi
-
 patch=$tmpdir/diff
 kdist config diff --raw $origin >$patch || {
 	if test -z "$origin"; then
@@ -78,28 +74,21 @@ fi
 #
 if test $# -eq 0; then
 	#
-	# No target is specified, use the defaut one based on the
-	# current configuration. We'll also verify the config with the
-	# current kernel.
+	# No target is specified, use the one matching the current
+	# setup.
 	#
-	name=$(config__read_flavour .config) &&
-	test -n "$name" ||
-	die "Missing CONFIG_NAME, don't know where to propagate changes."
-
-	arch=$(config__read_architecture .config) &&
-	test -n "$arch" ||
-	die "Unable to determine the architecture of the current config."
-
-	set $arch/$name
+	default_pattern=$(config__default_pattern .config) &&
+	set $default_pattern ||
+	exit
 fi
 
 targets=$(config__resolve_files $resolve_opts "$@") || exit
 if ! test "$targets"; then
-	die "No config files match '${@:-<empty>}' pattern."
+	die "No config files match '$@' pattern."
 fi
 
 #
-# Refuse to process if any files have changes which have not been
+# Refuse to process if any files have changes and have not been
 # staged since it's currently not possible for git-stash to leave them
 # intact (therefore they won't be restored in case of no errors since
 # git-apply won't be called).
@@ -124,45 +113,6 @@ if ! git__check_clean_work_tree 2>/dev/null; then
 fi
 trap cleanup_on_error 0
 
-#
-# convert a config revision into a kernel tag
-#
-verify_config () {
-	local config=$(readlink -f $1)
-	local conf_rev=${1%%/*}
-	local kern_rev
-
-	if ! test $verify; then
-		return
-	fi
-
-	pushd $kernel_path >/dev/null
-
-	kern_rev=$(config__map_to_kernel $conf_rev) &&
-	echo "Updating $1 with $kern_rev kernel..." ||
-	exit
-
-	#
-	# Just reuse the devel source if it already exists
-	#
-	if ! test -d $tmpdir/kernel-devel-$kern_rev; then
-		kdist package --format=tar --prefix=kernel-devel-$kern_rev \
-			-r $kern_rev devel | tar -C $tmpdir -xf - ||
-		die "Failed to get the devel package for rev $rev"
-	fi
-	cd $tmpdir/kernel-devel-$kern_rev
-
-	#
-	# Run Kbuild to update the config file.
-	#
-	arch=$(config__read_architecture $config)
-
-	KCONFIG_OVERWRITECONFIG=1 KCONFIG_CONFIG=$config \
-		make -s ARCH=$arch oldconfig ||
-		die "Failed to run make oldconfig for $t"
-
-	popd >/dev/null
-}
 
 
 for t in $targets
@@ -171,13 +121,18 @@ do
 	kdist config apply $t <$patch ||
 	die "Failed to patch $t."
 
-	verify_config $t ||
-	die "Failed to update $t."
-
-	echo "Staging changes in $t"
-	git stage $stage_opts $t &&
-	git checkout -- $t  ||
-	die "Failed to propagate changes to $t."
+	if test "$verify" = yes
+	then
+		pushd $kernel_path >/dev/null &&
+		kdist config update -f ${stage_opts:+-i} $t &&
+		popd >/dev/null ||
+		exit
+	else
+		echo "Staging changes in $t"
+		git stage $stage_opts $t &&
+		git checkout -- $t  ||
+		die "Failed to propagate changes to $t."
+	fi
 done
 
 
