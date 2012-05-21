@@ -29,7 +29,7 @@ release__previous () {
 	local list
 
 	list=$(echo $1; kdist release list)
-	list=$(echo "$list" | sort -V | grep -B1 $1)
+	list=$(echo "$list" | sort -V | grep -B1 ^$1\$)
 
 	case $(echo "$list" | wc -l) in
 	2)	echo "$list" | head -n1
