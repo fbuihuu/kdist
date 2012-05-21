@@ -1,4 +1,7 @@
 %install
+mkdir -p %{buildroot}/lib/modules/%{uname_r}
+mkdir -p %{buildroot}/boot
+
 if grep -q CONFIG_MODULES=y .config
 then
 	#
@@ -13,10 +16,7 @@ then
 	# generated if needed.
 	#
 	find %{buildroot} -name \*.ko -exec chmod u+x {} \;
-else
-	mkdir -p %{buildroot}/lib/modules/%{uname_r}
 fi
-mkdir -p %{buildroot}/boot
 
 # symlinks are always created.
 ln -snf %{kdevel_path} %{buildroot}/lib/modules/%{uname_r}/build
