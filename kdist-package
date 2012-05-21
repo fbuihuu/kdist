@@ -49,6 +49,7 @@ package__list_arch_devel_files () {
 		case $f in
 		*/include/*)		echo $f ;;
 		*/scripts/*)		echo $f ;;
+		*/tools/*)		echo $f ;;
 		*Kconfig*)		echo $f ;;
 		*Kbuild*)		echo $f ;;
 		*Makefile*)		echo $f ;;
@@ -85,12 +86,14 @@ package__list_devel_files () {
 		# as make mrproper...)
 		case $f in
 		arch/*)			continue ;;
+		tools/include/*)	;;
 		tools/*)		continue ;;
 		esac
 
 		case $f in
 		scripts/*)		echo $f ;;
 		include/*)		echo $f ;;
+		tools/include/*)	echo $f ;;
 		*/scripts/*)		echo $f ;;
 		*Kconfig*)		echo $f ;;
 		*Kbuild*)		echo $f ;;
