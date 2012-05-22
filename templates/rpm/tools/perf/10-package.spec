@@ -1,5 +1,6 @@
 # Add "--without doc" option to disable documentation generation
 %bcond_without doc
+%bcond_with gtk2
 
 Name:			%{name}
 Summary:		The performance analysis tools for Linux
@@ -20,6 +21,9 @@ BuildRequires:		binutils-devel
 BuildRequires:		elfutils-devel
 BuildRequires:		newt-devel
 BuildRequires:		python-devel
+%if %{with gtk2}
+BuildRequires:		gtk2-devel
+%endif
 %if %{with doc}
 BuildRequires:		asciidoc
 BuildRequires:		xmlto
@@ -32,9 +36,12 @@ This package contains the performance analysis tools for Linux.
 %if %no_source
 %define outdir_opt	O=$(pwd)
 %endif
+%if %{without gtk2}
+%define gtk2_opt	NO_GTK2=1
+%endif
 
 %global __perf_make	make %{?_smp_mflags} -C %{source_path}tools/%{name}
-%global _perf_make	%{__perf_make} prefix=%{_prefix}
+%global _perf_make	%{__perf_make} prefix=%{_prefix} %{?gtk2_opt}
 %global perf_make()	%{_perf_make} %{?outdir_opt} DESTDIR=%{buildroot}
 
 %if %build_srpm
