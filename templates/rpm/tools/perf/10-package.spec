@@ -15,6 +15,7 @@ BuildRoot:		%{_tmppath}/%{name}-%{version}-root
 %if %no_source
 BuildRequires:		kernel-source = %{version}-%{source_release}
 %endif
+BuildRequires:		bison flex
 BuildRequires:		binutils-devel
 BuildRequires:		elfutils-devel
 BuildRequires:		newt-devel
