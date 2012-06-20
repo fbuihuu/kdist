@@ -97,10 +97,11 @@ kdist__cd_repository configs
 
 for t in $targets; do
 	case $(git status --porcelain -- $t) in
-	" "[MD]" "*)
-		die "$t has unstaged changes, exiting." ;;
-	"?? "*)
-		die "$t is currently not tracked." ;;
+	""|[MARC]" "*)
+		# index and work tree matches
+		;;
+	*)
+		die "$t has unstaged changes, exiting ('-f' to force)."
 	esac
 done
 
