@@ -1,16 +1,18 @@
 #! /bin/bash
 
-USAGE="update [-i] [-n|--dry-run] [--force|-f] [--type=<type>] [<pattern>...]"
+USAGE="update [-i] [-n|--dry-run] [--force|-f] [--template=<file>] [--type=<type>] [<pattern>...]"
 
 resolve_opts=
 stage_opts=
 force=
+template=
 
 while
 	case $1 in
 	-i)		stage_opts="-i -p" ;;
 	--type=*)	resolve_opts="--type=${1#--type=}" ;;
 	--force|-f)	force=yes ;;
+	--template=*)	template=${1#--template=} ;;
 	-*)		usage ;;
 	*)		break
 	esac
@@ -54,6 +56,11 @@ if test $# -eq 0; then
 	exit
 fi
 
+if test -n "$template"; then
+	template=$(readlink -e "$template") ||
+	die "template not found."
+fi
+
 targets=$(config__resolve_files $resolve_opts "$@") || exit
 if ! test "$targets"; then
 	die "No config files match '$@' pattern."
@@ -90,6 +97,138 @@ fi
 trap cleanup_on_error 0
 
 #
+# Ok this one is pretty crap...
+#
+read_conf_output () {
+	while :
+	do
+		IFS='\' read -n1 -t0.005 -u${COPROC[0]} c 2>/dev/null
+		rv=$?
+		if ! test $rv -eq 0; then
+			[ $rv -gt 128 ] && rv=0
+			break
+		fi
+
+		case "$c" in
+		'')	c="\n"
+		esac
+		CONF_REPLY+="$c"
+	done
+	return $rv
+}
+
+warn_about_wrong_guess () {
+	warn "***"
+	warn "*** I tried '$2' for '$1', but it seems invalid for this config."
+	warn "***"
+	warn "*** Please resolve this symbol manually."
+	warn "***"
+}
+
+__update_config () {
+	KCONFIG_CONFIG="$1" \
+	KCONFIG_NOTIMESTAMP=1 \
+	KCONFIG_OVERWRITECONFIG=1 \
+	make -s ARCH=$2 oldconfig
+}
+
+update_config_from_template () {
+	local -i stats_resolv_auto=0
+	local -i stats_resolv_user=0
+
+	coproc {
+		__update_config "$1" $2
+	}
+	coproc_pid=$!
+
+	while read_conf_output
+	do
+		case "$CONF_REPLY" in
+		*choice\[*\]:" ")
+			#
+			# We have to resolve choices manually since we
+			# don't know which symbol this choice
+			# corresponds to.
+			#
+			echo -ne "$CONF_REPLY"
+			read val
+			echo >&${COPROC[1]} "$val"
+			CONF_REPLY=""
+			stats_resolv_user+=1
+			;;
+		*\[*\]" "\(NEW\)" ")
+			#
+			# Can the symbol's value be found in the
+			# template ?
+			#
+			last_sym="$sym"
+			sym=$(expr "$CONF_REPLY" : ".*(\([[:alnum:]_]*\)) \[") ||
+			bug "unable to parse symbol"
+
+			val=$(config__lookup_symbol_quotes $sym "$template") &&
+			case $val in
+			"")
+				# symbol is not set
+				val=N ;&
+			\"*\")
+				# strip the quotes
+				val=${val#\"}
+				val=${val%\"} ;&
+			*)
+				#
+				# Try to detect if something's going wrong:
+				# conf can reject our last guess. This is
+				# probably something happening when different
+				# architectures have different value ranges
+				# for some symbols.
+				#
+				if test "$sym" = "$last_sym"; then
+					#
+					# Warn the user only once
+					#
+					[ -z "$notified" ] && {
+						warn_about_wrong_guess $sym $val
+						notified=yes
+					}
+					echo -ne "$CONF_REPLY"
+					read val
+					stats_resolv_user+=1
+					stats_resolv_auto+=-1
+				else
+					#
+					# Try to submit the value taken
+					# from the template
+					#
+					notified=
+					echo -ne "$CONF_REPLY"
+					echo "$val"
+					stats_resolv_auto+=1
+				fi ;;
+			esac || {
+				# value is not in the template, ask to
+				# the user to resolve this.
+				echo -ne "$CONF_REPLY"
+				read val
+				stats_resolv_user+=1
+			}
+			echo >&${COPROC[1]} "$val"
+			CONF_REPLY=""
+			;;
+		esac
+	done
+
+	if ! wait $coproc_id; then
+		die "coproc exited abnormally ($?), aborting."
+	fi
+
+
+	echo "=========================="
+	echo "Symbols resolved by kdist : $stats_resolv_auto"
+	echo "Symbols resolved by user  : $stats_resolv_user"
+	echo "=========================="
+}
+
+#
 # convert a config revision into a kernel tag
 #
 update_config () {
@@ -119,12 +258,16 @@ update_config () {
 	arch=$(config__read_architecture $config) ||
 	die "config file seems corrupted, can't retrieve arch information."
 
-	KCONFIG_OVERWRITECONFIG=1 KCONFIG_CONFIG=$config \
-		make -s ARCH=$arch oldconfig ||
-		die "Failed to run make oldconfig for $t"
+	$do_update "$config" $arch ||
+	die "Failed to run make oldconfig for $t"
 
 	popd >/dev/null
 }
+
+do_update=__update_config
+if test -n "$template"; then
+	do_update=update_config_from_template
+fi
 
 for t in $targets
 do
