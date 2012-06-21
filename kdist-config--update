@@ -1,6 +1,6 @@
 #! /bin/bash
 
-USAGE="update [-i] [-n|--dry-run] [--force|-f] [--template=<file>] [--type=<type>] [<pattern>...]"
+USAGE="update [-v] [-i] [-n|--dry-run] [--force|-f] [--template=<file>] [--type=<type>] [<pattern>...]"
 
 resolve_opts=
 stage_opts=
@@ -13,6 +13,7 @@ while
 	--type=*)	resolve_opts="--type=${1#--type=}" ;;
 	--force|-f)	force=yes ;;
 	--template=*)	template=${1#--template=} ;;
+	-v|--verbose)	verbose=yes ;;
 	-*)		usage ;;
 	*)		break
 	esac
@@ -222,10 +223,10 @@ update_config_from_template () {
 	fi
 
 
-	echo "=========================="
-	echo "Symbols resolved by kdist : $stats_resolv_auto"
-	echo "Symbols resolved by user  : $stats_resolv_user"
-	echo "=========================="
+	say "=========================="
+	say "Symbols resolved by kdist : $stats_resolv_auto"
+	say "Symbols resolved by user  : $stats_resolv_user"
+	say "=========================="
 }
 
 #
