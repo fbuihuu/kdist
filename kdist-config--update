@@ -1,7 +1,8 @@
 #! /bin/bash
 
-USAGE="update [-v] [-i] [-n|--dry-run] [--force|-f] [--template=<file>] [--type=<type>] [<pattern>...]"
+USAGE="update [-v] [-i] [-n|--dry-run] [--force|-f] [--template=<file>] [--type=<type>] [file]|[<pattern>...]"
 
+declare -a targets
 resolve_opts=
 stage_opts=
 force=
@@ -62,35 +63,38 @@ if test -n "$template"; then
 	die "template not found."
 fi
 
-targets=$(config__resolve_files $resolve_opts "$@") || exit
-if ! test "$targets"; then
-	die "No config files match '$@' pattern."
-fi
+for t in "$@"; do
+	if test -f "$t"; then
+		t=$(readlink -f "$t")
+	else
+		t=$(config__resolve_files $resolve_opts "$t")
+		test -n "$t" ||
+		die "No config files match '$t' pattern."
 
-#
-# Refuse to process if any files have changes and have not been
-# staged since it's currently not possible for git-stash to leave them
-# intact (therefore they won't be restored in case of no errors since
-# git-apply won't be called).
-#
-kdist__cd_repository configs
-
-# All files in $targets are tracked since they were returned by
-# config__resolve_files().
-for t in $targets; do
-	case $(git status --porcelain -- $t) in
-	""|[MARC]" "*)
-		# index and work tree matches
-		;;
-	*)
-		test "$force" != yes &&
-		die "$t has unstaged changes, exiting ('-f' to force)."
-	esac
+		#
+		# For now refuse to modify any files with unstaged
+		# changes since git-stash won't be able to restore
+		# them.
+		#
+		kdist__cd_repository configs
+		case $(git status --porcelain -- $t) in
+		""|[MARC]" "*)
+			# index and work tree matches
+			;;
+		*)
+			test "$force" != yes &&
+			die "$t has unstaged changes, exiting ('-f' to force)."
+		esac
+		cd - >/dev/null
+	fi
+	targets+=("$t")
 done
 
 #
 # Now we're going to play with the index, so back it up.
 #
+kdist__cd_repository configs
+
 if ! git__check_clean_work_tree 2>/dev/null; then
 	stash_id=$(git stash create) ||
 	die "git-stash failed"
@@ -270,16 +274,19 @@ if test -n "$template"; then
 	do_update=update_config_from_template
 fi
 
-for t in $targets
+for t in "${targets[@]}"
 do
-	update_config $t || die "Failed to update $t."
+	update_config "$t" || die "Failed to update $t."
 
-	# FIXME: stage changes if there're actual changes (excluding
-	# the comments at the begining of the config file).
-	echo "Staging changes in $t"
-	git stage $stage_opts $t &&
-	git checkout -- $t  ||
-	die "Failed to propagate changes to $t."
+	# check that the target is part of the config repository.
+	if git ls-files "$t" &>/dev/null; then
+		# FIXME: stage changes if there're actual changes (excluding
+		# the comments at the begining of the config file).
+		echo "Staging changes in $t" &&
+		git stage $stage_opts $t &&
+		git checkout -- $t  ||
+		die "Failed to propagate changes to $t."
+	fi
 done
 
 
