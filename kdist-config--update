@@ -164,7 +164,7 @@ __update_config () {
 #
 declare -A symbol_cache
 
-update_config_from_template () {
+do_update_config () {
 	local -i stats_resolv_auto=0
 	local -i stats_resolv_user=0
 	local -i stats_resolv_cache=0
@@ -205,6 +205,7 @@ update_config_from_template () {
 			sym=$(expr "$CONF_OUTPUT" : ".*(\([[:alnum:]_]*\)) \[") ||
 			bug "unable to parse symbol"
 
+			test -n "$template" &&
 			val=$(config__lookup_symbol_quotes $sym "$template") &&
 			case $val in
 			"")
@@ -298,16 +299,11 @@ update_config () {
 	arch=$(config__read_architecture $config) ||
 	die "config file seems corrupted, can't retrieve arch information."
 
-	$do_update "$config" $arch ||
+	do_update_config "$config" $arch ||
 	die "Failed to run make oldconfig for $t"
 
 	popd >/dev/null
 }
-
-do_update=__update_config
-if test -n "$template"; then
-	do_update=update_config_from_template
-fi
 
 for t in "${targets[@]}"
 do
