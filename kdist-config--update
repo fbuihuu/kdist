@@ -157,8 +157,6 @@ update_config_from_template () {
 			#
 			echo -ne "$CONF_REPLY"
 			read val
-			echo >&${COPROC[1]} "$val"
-			CONF_REPLY=""
 			stats_resolv_user+=1
 			;;
 		*\[*\]" "\(NEW\)" ")
@@ -216,10 +214,12 @@ update_config_from_template () {
 				read val
 				stats_resolv_user+=1
 			}
-			echo >&${COPROC[1]} "$val"
-			CONF_REPLY=""
 			;;
+		*)
+			continue
 		esac
+		echo >&${COPROC[1]} "$val"
+		CONF_REPLY=""
 	done
 
 	if ! wait $coproc_id; then
