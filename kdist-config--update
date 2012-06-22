@@ -65,29 +65,31 @@ fi
 
 for t in "$@"; do
 	if test -f "$t"; then
-		t=$(readlink -f "$t")
+		targets+=("$(readlink -f "$t")")
 	else
-		t=$(config__resolve_files $resolve_opts "$t")
-		test -n "$t" ||
+		n=${#targets[*]}
+		for f in $(config__resolve_files $resolve_opts "$t")
+		do
+			targets+=("$f")
+			#
+			# For now refuse to modify any files with
+			# unstaged changes since git-stash won't be
+			# able to restore them.
+			#
+			if test "$force" != yes; then
+				kdist__cd_repository configs
+				case $(git status --porcelain -- $f) in
+				[MARC]" "*|"")
+					# index and work tree matches
+					cd - >/dev/null
+					continue
+				esac
+				die "$f has unstaged changes, exiting ('-f' to force)."
+			fi
+		done
+		test ${#targets[*]} -gt $n ||
 		die "No config files match '$t' pattern."
-
-		#
-		# For now refuse to modify any files with unstaged
-		# changes since git-stash won't be able to restore
-		# them.
-		#
-		kdist__cd_repository configs
-		case $(git status --porcelain -- $t) in
-		""|[MARC]" "*)
-			# index and work tree matches
-			;;
-		*)
-			test "$force" != yes &&
-			die "$t has unstaged changes, exiting ('-f' to force)."
-		esac
-		cd - >/dev/null
 	fi
-	targets+=("$t")
 done
 
 #
