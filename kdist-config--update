@@ -7,6 +7,7 @@ resolve_opts=
 stage_opts=
 force=
 template=
+dry_run=
 
 while
 	case $1 in
@@ -15,6 +16,7 @@ while
 	--force|-f)	force=yes ;;
 	--template=*)	template=${1#--template=} ;;
 	-v|--verbose)	verbose=yes ;;
+	-n|--dry-run)	dry_run=yes ;;
 	-*)		usage ;;
 	*)		break
 	esac
