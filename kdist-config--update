@@ -29,6 +29,12 @@ cleanup_on_exit () {
 }
 
 cleanup_on_error () {
+	# It seems that kconfig still updates the conf file even if it
+	# fails to read the user answer. Therefore the work tree might
+	# be modified even after being restored. Be sure that won't
+	# happen by killing kconfig.
+	test $coproc_pid && kill -9 $coproc_pid
+
 	cd $(kdist__get_repository configs)
 	git reset -q --hard HEAD &&
 	if test $stash_id; then
@@ -260,7 +266,7 @@ do_update_config () {
 	if ! wait $coproc_pid; then
 		die "coproc exited abnormally ($?), aborting."
 	fi
-
+	coproc_pid=
 
 	say "=========================="
 	say "Symbols resolved by kdist : $stats_resolv_auto"
