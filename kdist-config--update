@@ -155,9 +155,17 @@ __update_config () {
 	make -s ARCH=$2 oldconfig
 }
 
+#
+# In case serveral targets are given, cache the result for each target
+# so manually resolved symbol are asked only once. It assumes that a
+# group of targets use the same vals.
+#
+declare -A symbol_cache
+
 update_config_from_template () {
 	local -i stats_resolv_auto=0
 	local -i stats_resolv_user=0
+	local -i stats_resolv_cache=0
 
 	coproc {
 		__update_config "$1" $2
@@ -166,7 +174,16 @@ update_config_from_template () {
 
 	while read_conf_output
 	do
+		if test -n "${symbol_cache[$CONF_OUTPUT]}"; then
+			CONF_TYPE=cached
+		fi
+
 		case $CONF_TYPE in
+		cached)
+			val=${symbol_cache[$CONF_OUTPUT]}
+			stats_resolv_cache+=1
+			echo "$val"
+			;;
 		choice)
 			#
 			# We have to resolve choices manually since we
@@ -233,6 +250,7 @@ update_config_from_template () {
 				stats_resolv_user+=1
 			}
 		esac
+		symbol_cache[$CONF_OUTPUT]=$val
 		echo >&${COPROC[1]} "$val"
 	done
 
@@ -244,6 +262,7 @@ update_config_from_template () {
 	say "=========================="
 	say "Symbols resolved by kdist : $stats_resolv_auto"
 	say "Symbols resolved by user  : $stats_resolv_user"
+	say "Symbols resolved by cache : $stats_resolv_cache"
 	say "=========================="
 }
 
