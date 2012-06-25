@@ -257,7 +257,7 @@ do_update_config () {
 		echo >&${COPROC[1]} "$val"
 	done
 
-	if ! wait $coproc_id; then
+	if ! wait $coproc_pid; then
 		die "coproc exited abnormally ($?), aborting."
 	fi
 
