@@ -17,6 +17,11 @@ warn () {
 	return 1
 }
 
+bug () {
+	die "BUG in ${FUNCNAME[1]}: $@"
+	exit 2
+}
+
 usage () {
 	die "$(basename $0) $kdist_command $USAGE"
 }
@@ -179,7 +184,7 @@ kdist__setup_kernel_release () {
 
 kdist__make_tag () {
 	[ $KERNEL_VERSION ] ||
-		die "BUG: kdist__make_tag(): kernel version is not set"
+		bug "kernel version is not set"
 
 	# the 2.x.x -> 3.x transition has been painfull
 	echo v$KERNEL_VERSION_BASE | \

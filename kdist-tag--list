@@ -15,7 +15,7 @@ verscmp () {
 		$2)	return 2 ;;
 		esac
 	fi
-	die "BUG in verscmp"
+	bug "can't be reached"
 }
 
 cmp_kernel_version () {
@@ -85,7 +85,7 @@ cmp_kernel_version () {
 		esac
 
 		# Nerver reached
-		die "BUG in cmp_kernel_version()"
+		bug "can't be reached"
 	done
 
 	return 0
