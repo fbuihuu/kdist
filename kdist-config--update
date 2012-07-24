@@ -114,6 +114,11 @@ trap cleanup_on_error 0
 #
 # This function parse kconfig's output.
 #
+parse_choice () {
+	_CHOICE_NUM_ITEM=$(grep -c "^[[:space:]]*[[:digit:]]\+\." <<<"$1")
+	_CHOICE_NUM_NEW=$(grep -c "[[:digit:]]\+\. .*(NEW)$" <<<"$1")
+}
+
 read_conf_output () {
 	CONF_OUTPUT=
 	CONF_TYPE=
@@ -137,6 +142,10 @@ read_conf_output () {
 
 		case $CONF_OUTPUT in
 		*choice\[*\]:" ")
+			parse_choice "$CONF_OUTPUT"
+			case $_CHOICE_NUM_ITEM,$_CHOICE_NUM_NEW in
+			1,*|*,0) continue ;;
+			esac
 			CONF_TYPE=choice
 			break ;;
 		*\[*\]" "\(NEW\)" ")
