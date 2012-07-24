@@ -127,8 +127,8 @@ read_conf_output () {
 		#
 		# Read kconfig output char by char until we recognize
 		# a special pattern meaning that kconfig is waiting
-		# for an answer. We reset IFS since we want to keep
-		# newline.
+		# for an answer. We reset IFS as we want to keep
+		# newline characters.
 		#
 		IFS='' read -N1 -u${COPROC[0]} char ||
 		return
@@ -143,9 +143,17 @@ read_conf_output () {
 			CONF_SYM=$(expr "$CONF_OUTPUT" : ".*(\(.*\)) \[.*\] (NEW)")
 			CONF_TYPE=value
 			break ;;
-		*\[*\]" "[ymn]) ;&
-		*\[[[:digit:]]*\]" "[[:digit:]]*)
-			CONF_OUTPUT=
+		*choice\[*\]:" "[[:digit:]])		;&
+		*\[*\]" "[ymn])				;&
+		*\[[[:digit:]]*\]" "[[:digit:]])	;&
+		*\[0x[[:xdigit:]]*\]" "0x[[:xdigit:]])
+			# read until newline char and append the rest
+			# of the line to CONF_OUTPUT adding back the
+			# newline char.
+			read -u${COPROC[0]} char
+			CONF_OUTPUT+="$char\n"
+			CONF_TYPE=resolved
+			break ;;
 		esac
 	done
 }
@@ -184,11 +192,16 @@ do_update_config () {
 
 	while read_conf_output
 	do
+		echo -ne "$CONF_OUTPUT"
+
 		if test -n "${symbol_cache[$CONF_OUTPUT]}"; then
 			CONF_TYPE=cached
 		fi
 
 		case $CONF_TYPE in
+		resolved)
+			continue
+			;;
 		cached)
 			val=${symbol_cache[$CONF_OUTPUT]}
 			stats_resolv_cache+=1
@@ -200,7 +213,6 @@ do_update_config () {
 			# don't know which symbol this choice
 			# corresponds to.
 			#
-			echo -ne "$CONF_OUTPUT"
 			read val
 			stats_resolv_user+=1
 			;;
@@ -235,7 +247,6 @@ do_update_config () {
 						warn_about_wrong_guess $CONF_SYM $val
 						notified=yes
 					}
-					echo -ne "$CONF_OUTPUT"
 					read val
 					stats_resolv_user+=1
 					stats_resolv_auto+=-1
@@ -245,15 +256,13 @@ do_update_config () {
 					# from the template
 					#
 					notified=
-					echo -ne "$CONF_OUTPUT"
 					echo "$val"
 					stats_resolv_auto+=1
 				fi
 				last_sym=$CONF_SYM ;;
 			esac || {
-				# value is not in the template, ask to
-				# the user to resolve this.
-				echo -ne "$CONF_OUTPUT"
+				# value is not in the template, manual
+				# resolution is required.
 				read val
 				stats_resolv_user+=1
 			}
