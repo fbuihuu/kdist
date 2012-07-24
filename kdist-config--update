@@ -117,6 +117,7 @@ trap cleanup_on_error 0
 read_conf_output () {
 	CONF_OUTPUT=
 	CONF_TYPE=
+	CONF_SYM=
 
 	while :
 	do
@@ -139,6 +140,7 @@ read_conf_output () {
 			CONF_TYPE=choice
 			break ;;
 		*\[*\]" "\(NEW\)" ")
+			CONF_SYM=$(expr "$CONF_OUTPUT" : ".*(\(.*\)) \[.*\] (NEW)")
 			CONF_TYPE=value
 			break ;;
 		*\[*\]" "[ymn]) ;&
@@ -207,12 +209,8 @@ do_update_config () {
 			# Can the symbol's value be found in the
 			# template ?
 			#
-			last_sym="$sym"
-			sym=$(expr "$CONF_OUTPUT" : ".*(\([[:alnum:]_]*\)) \[") ||
-			bug "unable to parse symbol"
-
 			test -n "$template" &&
-			val=$(config__lookup_symbol_quotes $sym "$template") &&
+			val=$(config__lookup_symbol_quotes $CONF_SYM "$template") &&
 			case $val in
 			"")
 				# symbol is not set
@@ -229,12 +227,12 @@ do_update_config () {
 				# architectures have different value ranges
 				# for some symbols.
 				#
-				if test "$sym" = "$last_sym"; then
+				if test "$CONF_SYM" = "$last_sym"; then
 					#
 					# Warn the user only once
 					#
 					[ -z "$notified" ] && {
-						warn_about_wrong_guess $sym $val
+						warn_about_wrong_guess $CONF_SYM $val
 						notified=yes
 					}
 					echo -ne "$CONF_OUTPUT"
@@ -250,7 +248,8 @@ do_update_config () {
 					echo -ne "$CONF_OUTPUT"
 					echo "$val"
 					stats_resolv_auto+=1
-				fi ;;
+				fi
+				last_sym=$CONF_SYM ;;
 			esac || {
 				# value is not in the template, ask to
 				# the user to resolve this.
