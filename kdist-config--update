@@ -204,7 +204,7 @@ do_update_config () {
 	do
 		echo -ne "$CONF_OUTPUT"
 
-		if test "$val" != '?'; then
+		if test "$val" != '?\n'; then
 			if test -n "${symbol_cache[$CONF_OUTPUT]}"; then
 				CONF_TYPE=cached
 			fi
@@ -217,7 +217,7 @@ do_update_config () {
 		cached)
 			val=${symbol_cache[$CONF_OUTPUT]}
 			stats_resolv_cache+=1
-			echo "$val"
+			echo -ne "$val"
 			;;
 		choice)
 			#
@@ -226,6 +226,7 @@ do_update_config () {
 			# corresponds to.
 			#
 			read val
+			val+=\\n
 			stats_resolv_user+=1
 			;;
 		value)
@@ -278,15 +279,17 @@ do_update_config () {
 				read val
 				stats_resolv_user+=1
 			}
+			val+=\\n
 		esac
-		if test "$val" != '?'; then
+
+		if test "$val" != '?\n'; then
 			symbol_cache[${ref_output:-$CONF_OUTPUT}]=$val
 			ref_output=
 		else
 			: ${ref_output:=$CONF_OUTPUT}
 			stats_resolv_user+=-1
 		fi
-		echo >&${COPROC[1]} "$val"
+		echo -ne >&${COPROC[1]} "$val"
 	done
 
 	if ! wait $coproc_pid; then
