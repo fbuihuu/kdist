@@ -189,6 +189,11 @@ __update_config () {
 #
 declare -A symbol_cache
 
+resolve_from_template () {
+	test -n "$template" &&
+	config__lookup_symbol_quotes $1 "$template"
+}
+
 do_update_config () {
 	local -i stats_resolv_auto=0
 	local -i stats_resolv_user=0
@@ -204,38 +209,27 @@ do_update_config () {
 	do
 		echo -ne "$CONF_OUTPUT"
 
-		if test "$val" != '?\n'; then
-			if test -n "${symbol_cache[$CONF_OUTPUT]}"; then
-				CONF_TYPE=cached
-			fi
-		fi
-
-		case $CONF_TYPE in
-		resolved)
+		if test $CONF_TYPE = resolved
+		then
 			continue
-			;;
-		cached)
+
+		elif test -n "${symbol_cache[$CONF_OUTPUT]}"
+		then
 			val=${symbol_cache[$CONF_OUTPUT]}
 			stats_resolv_cache+=1
 			echo -ne "$val"
-			;;
-		choice)
-			#
-			# We have to resolve choices manually since we
-			# don't know which symbol this choice
-			# corresponds to.
-			#
+
+		elif test "$val" = '?\n' ||
+		     test $CONF_TYPE = choice ||
+		     ! val=$(resolve_from_template $CONF_SYM)
+		then
+			# If the previous answer was '?' then we're
+			# sure that the val has to be resolved manually.
 			read val
 			val+=\\n
 			stats_resolv_user+=1
-			;;
-		value)
-			#
-			# Can the symbol's value be found in the
-			# template ?
-			#
-			test -n "$template" &&
-			val=$(config__lookup_symbol_quotes $CONF_SYM "$template") &&
+		else
+			# 'val' has been initialized by using the template
 			case $val in
 			"")
 				# symbol is not set
@@ -261,6 +255,7 @@ do_update_config () {
 						notified=yes
 					}
 					read val
+					val+=\\n
 					stats_resolv_user+=1
 					stats_resolv_auto+=-1
 				else
@@ -273,14 +268,8 @@ do_update_config () {
 					stats_resolv_auto+=1
 				fi
 				last_sym=$CONF_SYM ;;
-			esac || {
-				# value is not in the template, manual
-				# resolution is required.
-				read val
-				stats_resolv_user+=1
-			}
-			val+=\\n
-		esac
+			esac
+		fi
 
 		if test "$val" != '?\n'; then
 			symbol_cache[${ref_output:-$CONF_OUTPUT}]=$val
