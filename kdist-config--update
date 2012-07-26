@@ -195,8 +195,8 @@ resolve_from_template () {
 }
 
 do_update_config () {
-	local -i stats_resolv_auto=0
-	local -i stats_resolv_user=0
+	local -i stats_resolv_template=0
+	local -i stats_resolv_manual=0
 	local -i stats_resolv_cache=0
 	local val ref_output
 
@@ -212,85 +212,83 @@ do_update_config () {
 		if test $CONF_TYPE = resolved
 		then
 			continue
+		fi
 
-		elif test -n "${symbol_cache[$CONF_OUTPUT]}"
+		#
+		# Try to detect if something's going wrong:
+		# mconf can have rejected the last user's answer.
+		#
+		# This can also happen when the value is taken from
+		# the template: different architectures may have
+		# different ranges of values for a given symbol for
+		# example.
+		#
+		if test "$ref_output" = "$CONF_OUTPUT"
 		then
+			symbol_cache[$CONF_OUTPUT]=
+
+		elif test "$val" != "?\n"
+		then
+			# cache the previous symbol resolution
+			if test -n "$ref_output"; then
+				symbol_cache[$ref_output]=$val
+				eval stats_resolv_$resolved_by+=1
+			fi
+			ref_output=$CONF_OUTPUT
+		fi
+
+		if test -n "${symbol_cache[$CONF_OUTPUT]}"
+		then
+			resolved_by=cache
 			val=${symbol_cache[$CONF_OUTPUT]}
-			stats_resolv_cache+=1
 			echo -ne "$val"
-
-		elif test "$val" = '?\n' ||
-		     test $CONF_TYPE = choice ||
-		     ! val=$(resolve_from_template $CONF_SYM)
-		then
+		else
+			#
 			# If the previous answer was '?' then we're
 			# sure that the val has to be resolved manually.
-			read val
+			#
+			if test "$val" = '?\n' ||
+			   test $CONF_TYPE = choice ||
+			   ! val=$(resolve_from_template $CONF_SYM)
+			then
+				resolved_by=manual
+				read val
+			else
+				resolved_by=template
+				# 'val' has been initialized by using the template
+				case $val in
+				"")
+					# symbol is not set
+					val=N ;;
+				\"*\")
+					# strip the quotes
+					val=${val#\"}
+					val=${val%\"}
+				esac
+				echo "$val"
+			fi
 			val+=\\n
-			stats_resolv_user+=1
-		else
-			# 'val' has been initialized by using the template
-			case $val in
-			"")
-				# symbol is not set
-				val=N ;&
-			\"*\")
-				# strip the quotes
-				val=${val#\"}
-				val=${val%\"} ;&
-			*)
-				#
-				# Try to detect if something's going wrong:
-				# conf can reject our last guess. This is
-				# probably something happening when different
-				# architectures have different value ranges
-				# for some symbols.
-				#
-				if test "$CONF_SYM" = "$last_sym"; then
-					#
-					# Warn the user only once
-					#
-					[ -z "$notified" ] && {
-						warn_about_wrong_guess $CONF_SYM $val
-						notified=yes
-					}
-					read val
-					val+=\\n
-					stats_resolv_user+=1
-					stats_resolv_auto+=-1
-				else
-					#
-					# Try to submit the value taken
-					# from the template
-					#
-					notified=
-					echo "$val"
-					stats_resolv_auto+=1
-				fi
-				last_sym=$CONF_SYM ;;
-			esac
 		fi
 
-		if test "$val" != '?\n'; then
-			symbol_cache[${ref_output:-$CONF_OUTPUT}]=$val
-			ref_output=
-		else
-			: ${ref_output:=$CONF_OUTPUT}
-			stats_resolv_user+=-1
-		fi
 		echo -ne >&${COPROC[1]} "$val"
 	done
+
+	# cache the last symbol resolution if needed
+	if test -n "$ref_output"; then
+		symbol_cache[$ref_output]=$val
+		eval stats_resolv_$resolved_by+=1
+	fi
 
 	if ! wait $coproc_pid; then
 		die "coproc exited abnormally ($?), aborting."
 	fi
 	coproc_pid=
 
-	say "=========================="
-	say "Symbols resolved by kdist : $stats_resolv_auto"
-	say "Symbols resolved by user  : $stats_resolv_user"
-	say "Symbols resolved by cache : $stats_resolv_cache"
-	say "=========================="
+	say "================================"
+	say "Symbols resolved from templates : $stats_resolv_template"
+	say "Symbols resolved manually       : $stats_resolv_manual"
+	say "Symbols resolved from cache     : $stats_resolv_cache"
+	say "================================"
 }
 
 #
