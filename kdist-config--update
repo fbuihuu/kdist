@@ -330,7 +330,10 @@ update_config () {
 for t in "${targets[@]}"
 do
 	update_config "$t" || die "Failed to update $t."
+done
 
+for t in "${targets[@]}"
+do
 	# check that the target is part of the config repository.
 	if git ls-files "$t" &>/dev/null; then
 		# FIXME: stage changes if there're actual changes (excluding
