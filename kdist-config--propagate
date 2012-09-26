@@ -119,14 +119,12 @@ do
 	echo "Patching $t..."
 	kdist config apply $t <$patch ||
 	die "Failed to patch $t."
-
-	# config staging is done by kdist-config--update
-	pushd $kernel_path >/dev/null &&
-	kdist config update -f ${stage_opts:+-i} $t &&
-	popd >/dev/null ||
-	exit
 done
 
+cd $kernel_path
+# This is going to stage config changes.
+kdist config update -f ${stage_opts:+-i} $targets ||
+exit
 
 if ! test $dry_run; then
 	trap cleanup_on_exit 0
