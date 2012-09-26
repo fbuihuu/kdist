@@ -263,6 +263,10 @@ rpm__rpmbuild () {
 }
 
 rpm__init () {
+	if ! type rpmbuild >/dev/null 2>&1; then
+		die "you must install rpmbuild first."
+	fi
+
 	if [ -n "$rpm_specfile" ]; then
 		[ -r "$rpm_specfile" ] ||
 			die "failed to read '$rpm_specfile'"
