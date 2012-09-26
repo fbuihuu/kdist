@@ -211,6 +211,30 @@ config__map_to_kernel () {
 	echo ${kernel_tag_map[$vers]}
 }
 
+__config_stash_id=
+
+config__save_repository () {
+	kdist__cd_repository configs
+	if ! git__check_clean_work_tree 2>/dev/null; then
+		__config_stash_id=$(git stash create) ||
+		die "git-stash failed"
+	fi
+	cd - >/dev/null
+}
+
+config__restore_repository () {
+	kdist__cd_repository configs
+	git reset -q --hard HEAD &&
+	if test $__config_stash_id; then
+		if ! git stash apply -q --index $__config_stash_id; then
+			warn "Error when restoring back the previous state !"
+			warn "Your previous changes are still stashed."
+			warn "Please restore then manually with git-stash."
+		fi
+	fi
+	cd - >/dev/null
+}
+
 #
 # start the config sub command
 #

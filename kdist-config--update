@@ -24,33 +24,23 @@ do
 	shift
 done
 
+tmpdir=$(mktemp -d)
+
 cleanup_on_exit () {
 	rm -fr $tmpdir
 }
 
 cleanup_on_error () {
-	# It seems that kconfig still updates the conf file even if it
+	# It seems that mconf still updates the conf file even if it
 	# fails to read the user answer. Therefore the work tree might
 	# be modified even after being restored. Be sure that won't
-	# happen by killing kconfig.
+	# happen by killing mconf.
 	test $coproc_pid && kill -9 $coproc_pid
-
-	cd $(kdist__get_repository configs)
-	git reset -q --hard HEAD &&
-	if test $stash_id; then
-		if ! git stash apply -q --index $stash_id; then
-			warn "Error when restoring back the previous state !"
-			warn "Your previous changes are still stashed."
-			warn "Please restore then manually with git-stash."
-		fi
-	fi
+	config__restore_repository
 	cleanup_on_exit
 }
 
 trap cleanup_on_exit 0
-
-stash_id=
-tmpdir=$(mktemp -d)
 
 kdist__cd_kernel_topdir &&
 kernel_path=$(pwd) ||
@@ -104,11 +94,7 @@ done
 # Now we're going to play with the index, so back it up.
 #
 kdist__cd_repository configs
-
-if ! git__check_clean_work_tree 2>/dev/null; then
-	stash_id=$(git stash create) ||
-	die "git-stash failed"
-fi
+config__save_repository
 trap cleanup_on_error 0
 
 #
