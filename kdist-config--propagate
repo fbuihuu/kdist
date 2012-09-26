@@ -1,10 +1,9 @@
 #! /bin/bash
 
-USAGE="propagate [-i] [-n|--dry-run] [--no-verify] [--type=<type>] [--origin=<pattern>] [<pattern>...]"
+USAGE="propagate [-i] [-n|--dry-run] [--type=<type>] [--origin=<pattern>] [<pattern>...]"
 
 stage_opts=
 resolve_opts=
-verify=yes
 origin=
 dry_run=
 
@@ -12,7 +11,6 @@ while
 	case $1 in
 	-i)		stage_opts="-i -p" ;;
 	--origin=*)	origin=${1#--origin=} ;;
-	--no-verify)	verify= ;;
 	--type=*)	resolve_opts="--type=${1#--type=}" ;;
 	-n|--dry-run)	dry_run=yes ;;
 	-*)		usage ;;
@@ -122,18 +120,11 @@ do
 	kdist config apply $t <$patch ||
 	die "Failed to patch $t."
 
-	if test "$verify" = yes
-	then
-		pushd $kernel_path >/dev/null &&
-		kdist config update -f ${stage_opts:+-i} $t &&
-		popd >/dev/null ||
-		exit
-	else
-		echo "Staging changes in $t"
-		git stage $stage_opts $t &&
-		git checkout -- $t  ||
-		die "Failed to propagate changes to $t."
-	fi
+	# config staging is done by kdist-config--update
+	pushd $kernel_path >/dev/null &&
+	kdist config update -f ${stage_opts:+-i} $t &&
+	popd >/dev/null ||
+	exit
 done
 
 
