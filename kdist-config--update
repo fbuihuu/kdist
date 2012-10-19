@@ -3,6 +3,7 @@
 USAGE="update [-v] [-i] [-n|--dry-run] [--force|-f] [--template=<file>] [--type=<type>] [file]|[<pattern>...]"
 
 declare -a targets
+declare -a untracked_targets
 resolve_opts=
 stage_opts=
 force=
@@ -24,6 +25,11 @@ do
 	shift
 done
 
+if test $# -eq 0; then
+	set .config
+fi
+
+
 tmpdir=$(mktemp -d)
 
 cleanup_on_exit () {
@@ -36,7 +42,13 @@ cleanup_on_error () {
 	# be modified even after being restored. Be sure that won't
 	# happen by killing mconf.
 	test $coproc_pid && kill -9 $coproc_pid
-	config__restore_repository
+
+	if test -n "$targets"; then
+		config__restore_repository
+	fi
+	for t in "${untracked_targets[@]}"; do
+		test -f $tmpdir/$t && cp $tmpdir/$t $t
+	done
 	cleanup_on_exit
 }
 
@@ -46,16 +58,6 @@ kdist__cd_kernel_topdir &&
 kernel_path=$(pwd) ||
 exit
 
-if test $# -eq 0; then
-	#
-	# No target was specified, we'll verify the 'default' config
-	# with the current kernel.
-	#
-	default_pattern=$(config__default_pattern .config) &&
-	set $default_pattern ||
-	exit
-fi
-
 if test -n "$template"; then
 	template=$(readlink -e "$template") ||
 	die "template not found."
@@ -63,10 +65,10 @@ fi
 
 for t in "$@"; do
 	if test -f "$t"; then
-		targets+=("$(readlink -f "$t")")
+		untracked_targets+=("$(readlink -f "$t")")
 	else
 		n=${#targets[*]}
-		for f in $(config__resolve_files $resolve_opts "$t")
+		for f in $(config__resolve_files --fullpath $resolve_opts "$t")
 		do
 			targets+=("$f")
 			#
@@ -89,13 +91,6 @@ for t in "$@"; do
 		die "No config files match '$t' pattern."
 	fi
 done
-
-#
-# Now we're going to play with the index, so back it up.
-#
-kdist__cd_repository configs
-config__save_repository
-trap cleanup_on_error 0
 
 #
 # This function parse kconfig's output.
@@ -281,15 +276,10 @@ do_update_config () {
 # convert a config revision into a kernel tag
 #
 update_config () {
-	local config=$(readlink -f $1)
-	local conf_rev=${1%%/*}
-	local kern_rev
+	local config=$1
+	local kern_rev=$2
 
-	pushd $kernel_path >/dev/null
-
-	kern_rev=$(config__map_to_kernel $conf_rev) &&
-	echo "Updating $1 with $kern_rev kernel..." ||
-	exit
+	echo "Updating $1 with $kern_rev kernel..."
 
 	#
 	# Just reuse the devel source if it already exists
@@ -310,27 +300,45 @@ update_config () {
 	do_update_config "$config" $arch ||
 	die "Failed to run make oldconfig for $t"
 
-	popd >/dev/null
+	cd - >/dev/null
 }
 
-for t in "${targets[@]}"
-do
-	update_config "$t" || die "Failed to update $t."
-done
+#
+# Now we're going to play with the index.
+#
+trap cleanup_on_error 0
+
+test -n "$targets" &&
+config__save_repository
 
 for t in "${targets[@]}"
 do
-	# check that the target is part of the config repository.
-	if git ls-files "$t" &>/dev/null; then
-		# FIXME: stage changes if there're actual changes (excluding
-		# the comments at the begining of the config file).
+	update_config "$t" $(config__map_to_kernel ${t%%/*}) ||
+	die "Failed to update $t."
+done
+
+for t in "${untracked_targets[@]}"
+do
+	cp --parents $t $tmpdir	# backup
+	update_config "$t" HEAD || die "Failed to update $t."
+done
+
+#
+# Stage changes if necessary.
+#
+if test -n "$targets"; then
+	kdist__cd_repository configs
+	for t in "${targets[@]}"
+	do
+		# FIXME: stage changes if there're actual changes
+		# (excluding the comments at the begining of the
+		# config file).
 		echo "Staging changes in $t" &&
 		git stage $stage_opts $t &&
 		git checkout -- $t  ||
 		die "Failed to propagate changes to $t."
-	fi
-done
-
+	done
+fi
 
 if ! test $dry_run; then
 	trap cleanup_on_exit 0
