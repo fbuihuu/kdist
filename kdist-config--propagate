@@ -30,21 +30,12 @@ cleanup_on_exit () {
 }
 
 cleanup_on_error () {
-	cd $(kdist__get_repository configs)
-	git reset -q --hard HEAD &&
-	if test $stash_id; then
-		if ! git stash apply -q --index $stash_id; then
-			warn "Error when restoring back the previous state !"
-			warn "Your previous changes are still stashed."
-			warn "Please restore then manually with git-stash."
-		fi
-	fi
+	config__restore_repository
 	cleanup_on_exit
 }
 
 trap cleanup_on_exit 0
 
-stash_id=
 tmpdir=$(mktemp -d)
 
 #
@@ -106,13 +97,8 @@ done
 #
 # Now we're going to play with the index, so back it up.
 #
-if ! git__check_clean_work_tree 2>/dev/null; then
-	stash_id=$(git stash create) ||
-	die "git-stash failed"
-fi
+config__save_repository
 trap cleanup_on_error 0
-
-
 
 for t in $targets
 do
@@ -122,7 +108,7 @@ do
 done
 
 cd $kernel_path
-# This is going to stage config changes.
+# This also stages config changes.
 kdist config update -f ${stage_opts:+-i} $targets ||
 exit
 
