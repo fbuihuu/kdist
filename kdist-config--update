@@ -64,11 +64,9 @@ if test -n "$template"; then
 fi
 
 for t in "$@"; do
-	if test -f "$t"; then
-		untracked_targets+=("$(readlink -f "$t")")
-	else
-		n=${#targets[*]}
-		for f in $(config__resolve_files --fullpath $resolve_opts "$t")
+	filenames=$(config__resolve_files --fullpath $resolve_opts "$t")
+	if test -n "$filenames"; then
+		for f in $filenames
 		do
 			targets+=("$f")
 			#
@@ -87,8 +85,10 @@ for t in "$@"; do
 				die "$f has unstaged changes, exiting ('-f' to force)."
 			fi
 		done
-		test ${#targets[*]} -gt $n ||
-		die "No config files match '$t' pattern."
+	else
+		f=$(readlink -e "$t") &&
+		untracked_targets+=("$f") ||
+		die "File not found (and it's not a valid pattern either): $t"
 	fi
 done
 
