@@ -85,7 +85,7 @@ die "No config files with '$type' type found for version '$from'."
 # go back to the kernel directory
 cd - >/dev/null
 
-kdist config update --template=$template "${targets[@]}" ||
+kdist config update --template=$template "${targets[@]/#/$tmpdir/}" ||
 exit
 
 #
