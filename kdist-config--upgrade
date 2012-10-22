@@ -10,14 +10,16 @@
 # since a lot of new configurations will be the same. You'll be
 # prompted for i586 specific symbol values only.
 #
-USAGE="upgrade [--template=<file>] <type> [<from>]"
+USAGE="upgrade [--template=<file>] [--from=<version>] <type>"
 
 declare -a targets
 template=.config
+from=
 
 while
 	case $1 in
 	--template=*)	template=$(readlink -f ${1#--template=}) ;;
+	--from=*)	from=${1#--from=} ;;
 	-*)		usage ;;
 	*)		break
 	esac
@@ -26,7 +28,7 @@ do
 done
 
 case $# in
-1|2)	;;
+1)	;;
 *)	usage
 esac
 
@@ -52,18 +54,18 @@ tmpdir=$(mktemp -d)
 kdist__cd_repository configs
 
 to=$(kdist__config_version $KERNEL_VERSION_BASE)
-case $# in
-1)
+case $from in
+"")
 	# pickup the previous config version
 	from=$({ echo $to; ls -1; } | sort -V | uniq | grep -B1 $to)
 	case $(echo "$from" | wc -l) in
 	2)	from=$(echo "$from" | head -1) ;;
 	*)	die "No previous version found to upgrade from."
 	esac ;;
-2)
-	from=$(kdist__config_version $2)
+*)
+	from=$(kdist__config_version $from)
 	test -d $from ||
-	die "Unknown version '$2'."
+	die "Kernel version '$from' doesn't exist in config repository."
 esac
 
 for src in $(config__ls_files --type=$type "$from/*/*")
