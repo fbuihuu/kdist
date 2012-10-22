@@ -59,8 +59,7 @@ case $# in
 	case $(echo "$from" | wc -l) in
 	2)	from=$(echo "$from" | head -1) ;;
 	*)	die "No previous version found to upgrade from."
-	esac
-	echo "Upgrading from 'v$from'" ;;
+	esac ;;
 2)
 	from=$(kdist__config_version $2)
 	test -d $from ||
@@ -81,6 +80,14 @@ done
 
 test ${#targets[*]} -gt 0 ||
 die "No config files with '$type' type found for version '$from'."
+
+echo "The following configuration files are going to be"
+echo "created from the previous kernel version $from:"
+echo
+for config in "${targets[@]}"; do echo "  $config"; done
+echo
+read -n1 -s -p "Press a key to continue"
+echo
 
 # go back to the kernel directory
 cd - >/dev/null
