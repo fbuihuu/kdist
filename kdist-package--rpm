@@ -49,6 +49,9 @@ package_other () {
 package_flavour () {
 	rpm_exclusive=$(config__read_architecture $1)
 
+	# Make sure the .config is uptodate otherwise uname_r is going
+	# to be filled with crap.
+	make -s silentoldconfig || exit
 	uname_r=$(make -s ARCH=$rpm_exclusive kernelrelease)
 
 	if test $spec_only; then
