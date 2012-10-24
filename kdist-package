@@ -32,6 +32,10 @@ esac
 
 # use lowercase.
 package_distrib=${package_distrib,,}
+case $package_distrib in
+*/*)	;;
+*)	package_distrib+=/default
+esac
 
 case ${package_distrib%%/*},$package_type in
 mandriva,src|source)	package_type=srpm ;;
