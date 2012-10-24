@@ -1,31 +1,43 @@
 #! /bin/bash
 
+USAGE=" [--distrib=<name>] [--type=src|bin|tar] [<args>]
 
-USAGE="[--format=<fmt>] [<args>]
+   --distrib    Force the target distribution
 
-Supported formats are:
-
-   rpm          Generate various rpm packages (defaut)
-   srpm         Generate various src.rpm packages
-   tar		Generate source tarballs
+   --type
+         src    Generate various source packages (defaut)
+         bin    Generate various binary packages
+         tar    Generate variaus source tar archives
 
 See 'kdist package <command> --help' for more information on a specific command."
 
 output_directory=
+package_type=src
+package_distrib=Mandriva
 
-case $1 in
---format=*)
-	package_format=${1#--format=}
-	shift ;;
---help)
-	usage ;;
-*)
-	package_format=rpm
+while
+	case $1 in
+	--distrib=*)	package_distrib=${1#--distrib=} ;;
+	--type=*)	package_type=${1#--type=} ;;
+	*)		break
+	esac
+do
+	shift
+done
+
+case $package_type in
+src|source|bin|binary|tar) ;;
+*) die "Invalide package type '$package_type'"
 esac
 
-# resolve some aliases
-case $package_format in
-src.rpm)	package_format=srpm;
+# use lowercase.
+package_distrib=${package_distrib,,}
+
+case ${package_distrib%%/*},$package_type in
+mandriva,src|source)	package_type=srpm ;;
+mandriva,bin|binary)	package_type=rpm ;;
+*,tar)			package_type=tar ;;
+*)			die "Unknown distribution"
 esac
 
 #
@@ -265,16 +277,11 @@ package__main () {
 
 	package_flavour $configs || {
 		if test "$verbose" != yes; then
-			warn "Failed to build '$package_format' package," \
+			warn "Failed to build '$package_type' package," \
 			     "try with '-v' option."
 		fi
 		exit 1
 	}
 }
 
-if ! test -f $libexecdir/kdist-package--$package_format; then
-	die "Unsupported package format: $package_format"
-fi
-
-source $libexecdir/kdist-package--$package_format
-
+source $libexecdir/kdist-package--$package_type

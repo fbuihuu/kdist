@@ -81,5 +81,5 @@ case $target in
 source)			buildrel_opt= ;;
 esac
 cd $kernel_topdir
-kdist package --format=srpm $verbose -r $kernel_tag $buildrel_opt \
+kdist package --type=src $verbose -r $kernel_tag $buildrel_opt \
 	$binary_opts -o $output $target

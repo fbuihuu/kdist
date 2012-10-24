@@ -1,6 +1,6 @@
 #! /bin/bash
 
-USAGE="--format=srpm [-v] [--show-spec|--annotate-spec] [--spec=<specfile>] [--release=<num>] [--with-source] [--output-dir|-o <dir>] [-r <tag>] [<flavour>|source|headers|firmware|tools/<name>]
+USAGE="--type=src [-v] [--show-spec|--annotate-spec] [--spec=<specfile>] [--release=<num>] [--with-source] [--output-dir|-o <dir>] [-r <tag>] [<flavour>|source|headers|firmware|tools/<name>]
 
    <flavour>         Package the kernel using the specified flavour
    source            Package the kernel sources
@@ -34,7 +34,7 @@ create_archive () {
 		)
 		return
 	fi
-	kdist package --format=tar --prefix=$package_archive/ -r $rev \
+	kdist package --type=tar --prefix=$package_archive/ -r $rev \
 		-q -j -o $SOURCES/$package_archive.tar.bz2 ${1%%/*}
 }
 
@@ -67,7 +67,7 @@ package_flavour () {
 	# debuginfo package.
 	#
 	say "Extracting kernel $src_uname_r source code"
-	kdist package --format=tar --prefix=$package_archive/ -r $rev source | \
+	kdist package --type=tar --prefix=$package_archive/ -r $rev source | \
 		tar -C $SOURCES -xf - || exit
 
 	#

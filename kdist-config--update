@@ -285,7 +285,7 @@ update_config () {
 	# Just reuse the devel source if it already exists
 	#
 	if ! test -d $tmpdir/kernel-devel-$kern_rev; then
-		kdist package --format=tar --prefix=kernel-devel-$kern_rev \
+		kdist package --type=tar --prefix=kernel-devel-$kern_rev \
 			-r $kern_rev devel | tar -C $tmpdir -xf - ||
 		die "Failed to get the devel package for rev $rev"
 	fi

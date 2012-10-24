@@ -14,7 +14,7 @@ __resolve_one_spec () {
 	local tmpfile2=$(mktemp)
 	local rpm_exclusive=$(echo $(rpm__architecture $rpm_exclusive))
 
-	[ $package_format == srpm ] && build_srpm=1
+	[ $package_type == srpm ] && build_srpm=1
 
 	if test -z "$package_description"; then
 		package_description="This %{name} is for testing purpose only."

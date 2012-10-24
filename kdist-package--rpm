@@ -1,6 +1,6 @@
 #! /bin/bash
 
-USAGE="[--format=rpm] [-v] [--show-spec|--annotate-spec] [--spec=<specfile>] [--output-dir|-o <dir>] [--with=...] [--without=...] [source|headers|firmware|tools/<name>]
+USAGE="[--type=bin] [-v] [--show-spec|--annotate-spec] [--spec=<specfile>] [--output-dir|-o <dir>] [--with=...] [--without=...] [source|headers|firmware|tools/<name>]
 
    source            Package the kernel sources
    headers           Package the kernel header files
@@ -20,7 +20,7 @@ source $libexecdir/kdist-package--rpm-common
 
 package_source () {
 	say "Extracting kernel $src_uname_r source code"
-	kdist package --format=tar -q --prefix=$package_archive/ -j \
+	kdist package --type=tar -q --prefix=$package_archive/ -j \
 		-o $SOURCES/$package_archive.tar.bz2 source &&
 	show_spec source >$SPECS/$package_name.spec &&
 	rpm__rpmbuild -bb $SPECS/$package_name.spec
