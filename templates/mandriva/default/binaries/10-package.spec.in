@@ -5,7 +5,7 @@ Name:			%{name}
 Summary:		The Linux Kernel for Mandriva %{flavour} systems
 URL:			http://www.kernel.org
 Version:		%{version}
-Release:		%{source_release}.%{build_release}
+Release:		%mkrel %{source_release}.%{build_release}
 License:		GPLv2
 Group:			System/Kernel and hardware
 Provides:		kernel = %{version}-%{release}
@@ -13,9 +13,17 @@ ExclusiveArch:		%{exclusive}
 BuildRoot:		%{_tmppath}/%{name}-%{version}-root
 @RPM_SOURCES@
 Requires:		kernel-firmware
+Requires(pre):		bootloader-utils
+Requires(pre):		mkinitrd
+Requires(pre):		module-init-tools
+BuildRequires:		module-init-tools
 %if %no_source
-BuildRequires:		kernel-source = %{version}-%{source_release}
+BuildRequires:		kernel-source = %{version}-%{mkrel %{source_release}}
 %endif
 
 %define debug_package	%{nil}
 %define __check_files	%{nil}
+
+# Go away rpmlint, life is too short !
+%define _build_pkgcheck_set	%{nil}
+%define _build_pkgcheck_srpm	%{nil}

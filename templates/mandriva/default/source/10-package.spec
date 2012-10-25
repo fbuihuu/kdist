@@ -1,7 +1,7 @@
 Name:			%{name}
 Summary:		Linux kernel source files
 Version:		%{version}
-Release:		%{source_release}
+Release:		%mkrel %{source_release}
 License:		GPLv2
 Group:			System/Kernel and hardware
 URL:			http://www.kernel.org

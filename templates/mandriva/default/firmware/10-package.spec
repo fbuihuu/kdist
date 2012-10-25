@@ -1,7 +1,8 @@
 Name:			%{name}
 Summary:		Linux kernel firmware files
 Version:		%{version}
-Release:		%{source_release}.%{build_release}
+Release:		%mkrel %{source_release}.%{build_release}
+Epoch:			1
 License:		GPLv2
 Group:			System/Kernel and hardware
 URL:			http://www.kernel.org
@@ -12,7 +13,7 @@ Buildarch:		noarch
 BuildRoot:		%{_tmppath}/%{name}-%{version}-root
 AutoReqProv:		no
 %if %no_source
-BuildRequires:		kernel-source = %{version}-%{source_release}
+BuildRequires:		kernel-source = %{version}-%{mkrel %{source_release}}
 %endif
 
 %define debug_package	%{nil}

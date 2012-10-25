@@ -1,4 +1,4 @@
-%files -f %{name}.lang
+%files
 %defattr(-, root, root)
 %{_bindir}/cpupower
 %{_bindir}/centrino-decode

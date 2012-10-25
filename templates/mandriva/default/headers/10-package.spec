@@ -1,7 +1,8 @@
 Name:			%{name}
 Summary:		Linux kernel header files mostly used by your C library
 Version:		%{version}
-Release:		%{source_release}.%{build_release}
+Release:		%mkrel %{source_release}.%{build_release}
+Epoch:			1
 License:		GPLv2
 Group:			System/Kernel and hardware
 URL:			http://www.kernel.org
@@ -11,8 +12,10 @@ Source:			%{archive}.tar.bz2
 BuildRoot:		%{_tmppath}/%{name}-%{version}-root
 AutoReqProv:		no
 %if %no_source
-BuildRequires:		kernel-source = %{version}-%{source_release}
+BuildRequires:		kernel-source = %{version}-%{mkrel %{source_release}}
 %endif
+
+%rename linux-userspace-headers
 
 %define debug_package	%{nil}
 %define __check_files	%{nil}

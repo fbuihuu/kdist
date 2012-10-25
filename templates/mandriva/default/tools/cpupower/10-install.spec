@@ -3,4 +3,3 @@
 %if %{with doc}
 %{cpupower_make} install-man
 %endif
-%find_lang %{name}

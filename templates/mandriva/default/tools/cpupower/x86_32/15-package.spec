@@ -1,1 +1,1 @@
-Buildrequires:		lrmi0-devel
+Buildrequires:		liblrmi0-devel
