@@ -13,7 +13,7 @@
 USAGE="upgrade [--template=<file>] [--from=<version>] <type>"
 
 declare -a targets
-template=.config
+template_opt=
 from=
 
 while
@@ -33,6 +33,7 @@ case $# in
 esac
 
 type=$1
+template_opt=${template:+--template=$template}
 
 kdist__cd_kernel_topdir &&
 kdist__setup_kernel_version ||
@@ -94,7 +95,7 @@ echo
 # go back to the kernel directory
 cd - >/dev/null
 
-kdist config update --template=$template "${targets[@]/#/$tmpdir/}" ||
+kdist config update $template_opt "${targets[@]/#/$tmpdir/}" ||
 exit
 
 #
