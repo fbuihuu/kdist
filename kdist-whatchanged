@@ -1,18 +1,21 @@
 #! /bin/bash
 
-USAGE="[-v] [--debug] [--stat] <new> [<old>]"
+USAGE="[-v] [--debug] [--header] [--stat] <new> [<old>]"
 
 
 verbose=no
 stat=no
 diff=no
 debug=no
+header=no
 
 while :
 do
 	case "$1" in
 	--stat)
 		stat=yes ;;
+	--header)
+		header=yes ;;
 	--verbose|-v)
 		verbose=yes ;;
 	--debug)
@@ -35,8 +38,8 @@ case $# in
 esac
 
 #
-# log command assumes to be in a kernel repository (being tracked by
-# kdist or not).
+# This script only work for the kernel, because the way it retrieves
+# the bases. Therefore be sure it's called in a kernel repository.
 #
 kdist__cd_kernel_topdir || exit
 
@@ -48,14 +51,16 @@ declare -i kept_count=0
 declare -i merged_count=0
 declare -i dropped_count=0
 
+prefix=
+
 show_one_list () {
-	local fmt="   $2 [%h] %s"
+	local fmt="$prefix   $2 [%h] %s"
 
 	if test $stat = 'yes'; then
 		return
 	fi
 	if test $verbose = 'no'; then
-		fmt="  $2 %s"
+		fmt="$prefix  $2 %s"
 	fi
 
 	while read sha1 subject; do
@@ -65,21 +70,35 @@ show_one_list () {
 }
 
 show_lists () {
+	local lvl=
+
+	case $new_count,$kept_count,$merged_count,$dropped_count in
+	0,0,0,0)	return
+	esac
+
+	if test $header = yes; then
+		printf "* kernel %s...%s:\n" \
+			"$(git describe --exact-match --always --abbrev=7 $dist_a)" \
+			"$(git describe --exact-match --always --abbrev=7 $dist_b)"
+		prefix="  "
+		lvl="*"
+	fi
+
 	if test $new_count -gt 0; then
-		echo "* New: ($new_count)"
-		show_one_list $new_list '+'
+		echo "${prefix}+ New: ($new_count)"
+		show_one_list $new_list '>'
 	fi
 	if test $kept_count -gt 0; then
-		echo "* Kept: ($kept_count)"
-		show_one_list $kept_list '+'
+		echo "${prefix}+ Kept: ($kept_count)"
+		show_one_list $kept_list '>'
 	fi
 	if test $merged_count -gt 0; then
-		echo "* Mainlined: ($merged_count)"
-		show_one_list $merged_list '-'
+		echo "${prefix}+ Mainlined: ($merged_count)"
+		show_one_list $merged_list '<'
 	fi
 	if test $dropped_count -gt 0; then
-		echo "* Dropped: ($dropped_count)"
-		show_one_list $dropped_list '-'
+		echo "${prefix}+ Dropped: ($dropped_count)"
+		show_one_list $dropped_list '<'
 	fi
 }
 
