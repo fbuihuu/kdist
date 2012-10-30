@@ -7,7 +7,11 @@ INSTALL = install
 
 KDIST	= kdist
 
-KDIST_LIBEXECS = $(wildcard kdist-*)
+KDIST_SCRIPTS = \
+	kdist-project kdist-project--init kdist-config kdist-config--apply \
+	kdist-config--diff kdist-config--info kdist--lib kdist--lib-git
+
+KDIST_LIBEXECS = $(KDIST_SCRIPTS)
 
 prefix = /usr/local
 bindir = $(prefix)/bin
