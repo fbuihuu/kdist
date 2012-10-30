@@ -11,9 +11,15 @@ The 'release' commands are:
 
 See 'kdist release <command> --help for more information on a specific command."
 
-#
-# For now nothing interesting to see here.
-#
+while
+	case $1 in
+	-*)	usage ;;
+	*)	break
+	esac
+do
+	shift
+done
+
 kdist_subcommand=$1
 shift
 

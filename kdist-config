@@ -18,6 +18,15 @@ The 'config' commands are:
 
 See 'kdist config <command> --help' for more information on a specific command."
 
+while
+	case $1 in
+	-*)	usage ;;
+	*)	break
+	esac
+do
+	shift
+done
+
 readonly kdist_subcommand=$1
 shift
 

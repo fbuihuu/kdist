@@ -11,6 +11,15 @@ The 'project' commands are
 
 See 'kdist repository <command> --help for more information on a specific command."
 
+while
+	case $1 in
+	-*)	usage ;;
+	*)	break
+	esac
+do
+	shift
+done
+
 kdist_subcommand=$1
 shift
 
