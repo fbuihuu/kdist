@@ -11,11 +11,7 @@ KDIST_LIBEXECS = $(wildcard kdist-*)
 
 prefix = /usr/local
 bindir = $(prefix)/bin
-sharedir = $(prefix)/share/kdist
 libexecdir = $(prefix)/libexec/kdist
-template_dir = $(sharedir)/templates
-
-export DESTDIR INSTALL RM TAR prefix template_dir
 
 
 .PHONY: all install tarbz2-pkg
@@ -29,9 +25,7 @@ install:
 	$(INSTALL) -m755 -d $(DESTDIR)$(libexecdir)
 	$(INSTALL) $(KDIST) $(DESTDIR)$(bindir)
 	$(INSTALL) $(KDIST_LIBEXECS) $(DESTDIR)$(libexecdir)
-	$(MAKE) -C templates install
 	sed -i  -e "s|^LIBEXECDIR=.*|LIBEXECDIR=$(libexecdir)|" \
-		-e "s|^TEMPLATEDIR=.*|TEMPLATEDIR=$(template_dir)|" \
 		-e "s|^KDIST_VERSION=.*|KDIST_VERSION=v$(VERSION)|" \
 		$(DESTDIR)$(bindir)/kdist
 
