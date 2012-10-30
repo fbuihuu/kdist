@@ -174,7 +174,7 @@ __to_kern_tag () {
 	esac
 
 	# Otherwise find the most recent distribution tag
-	ktag=$(kdist tag list -n1 $1\*)
+	ktag=$(kdist release list -n1 $1\*)
 	if test "$ktag"; then
 		echo $ktag
 		return

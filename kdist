@@ -75,9 +75,8 @@ The kdist commands are:
    config       Deal with kernel configs operations.
    log          Show what changed between different kernel version.
    package      Build various packages (source, binary, devel...).
+   project      Manage a kdist super project.
    release      Deal with kernel release operations.
-   repository   Create a repository to track configs, releases...
-   tag          Deal with kernel tags.
    whatchanged  Show what happened between two releases.
 
 See 'kdist <command> --help' for more information on a specific command.
@@ -110,12 +109,6 @@ source $libexecdir/kdist--lib || exit
 #
 # Call the command handler: it assumes to be in kdist topdir.
 #
-
-# some aliases...
-case $kdist_command in
-repo)	kdist_command=repository ;;
-esac
-
 if ! test -f $libexecdir/kdist-$kdist_command; then
 	die "'$kdist_command' command not found."
 fi

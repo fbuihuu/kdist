@@ -9,10 +9,10 @@ __current_config_filter=
 config_info__load () {
 	local Type Description Filter
 
-	test -f "$(kdist__get_repository configs/$1.info)" ||
+	test -f "$(kdist__get_repository configs)/$1.info" ||
 	die "Huh.. missing info file in 'configs/$1.info'."
 
-	source "$(kdist__get_repository configs/$1.info)" ||
+	source "$(kdist__get_repository configs)/$1.info" ||
 	die "Error while reading config info for '$1'."
 
 	__current_config_name=$1 &&

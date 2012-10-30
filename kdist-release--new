@@ -1,215 +1,137 @@
 #! /bin/bash
 
-USAGE="new [--help] [--config=<version>] [--packaging=<version>]"
+USAGE="kernel|project [--help]"
 
 
-kernel_tag=
-config_tag=
-packaging_tag=
+release__kernel () {
+	local n
 
-while
-	case $1 in
-	--config=*)	config_tag=${1#--config=} ;;
-	--packaging=*)	packaging_tag=${1#--packaging=} ;;
-	"")		break ;;
-	*)		usage
+	#
+	# Pick up the kernel revision from the main Makefile then list
+	# the tags using it as pattern and take the latest rev from
+	# the list.
+	#
+	base=$(kdist__make_tag)
+	last=$(kdist release list -n1 $base-\*)
+	case "$last" in
+	"")	n=1;;
+	*)	n=$((${last##*-} + 1))
 	esac
-do
-	shift
-done
+	tag=$(kdist__make_tag $n)
 
-kdist__cd_kernel_topdir || exit
-kernel_topdir=$(pwd)
+	# We know that the kernel repo is clean so the scmversion
+	# indicates an exact match only.
+	git describe --exact-match --match=${tag%-*}-\* &>/dev/null &&
+	warn "You're about to create an empty release."
 
-#
-# HEAD must be on a release commit.
-#
-kdist__setup_kernel_version
-base=$(kdist__make_tag)
-kernel_tag=$(git describe --exact-match --match=$base-\* 2>/dev/null) || {
-	warn "Your HEAD doesn't point on a released commit."
-	exit 1
+	echo -n "Tag 'kernel' with: $tag [Y/n]? "
+	read -p "Create new kernel release: $tag [Y/n]? " yesno
+	case $yesno in
+	y|yes)	;;
+	*)	die "Aborted."
+	esac
+
+	# 'n' can be different from 'KERNEL_VERSION_PACKAGE + 1'
+	if test $KERNEL_VERSION_PACKAGE; then
+		sed -i "/EXTRAVERSION =/s/-$KERNEL_VERSION_PACKAGE/-$n/" Makefile
+	else
+		sed -i "s/EXTRAVERSION =.*/&-$n/" Makefile
+	fi ||
+	die "failed to update the top Makefile"
+
+	if ! git commit -qs -m "Mandriva Release $tag"; then
+		git checkout -- Makefile
+		die "git failed to commit the release."
+	fi
+	if ! git__tag $tag; then
+		git reset -q --hard HEAD~1
+		die "git failed to create the tag."
+	fi
 }
 
-# only warn the user if the working space is dirty.
-git__check_clean_work_tree 2>/dev/null ||
-warn "warning: kernel repository dirty."
+release__project () {
+	local branch
+	local tmpfile=$(mktemp)
+	trap "rm -f $tmpfile" 0
 
+	base=$(kdist__make_tag)
+	kernel_tag=$(git describe --exact-match --match=$base-\* 2>/dev/null) ||
+	die "kernel HEAD is not on a released commit."
+
+	kdist__cd_topdir
+
+	#
+	# check that the current branch is the one used to track this
+	# specific kernel version. If not, just exit and ask to the
+	# user to resolve this.
+	#
+	branch=$(git symbolic-ref -q HEAD)
+	[[ $kernel_tag = v${branch##*/}* ]] ||
+	die "Your current branch is not the one used to track $base kernel serie."
+
+	# Figure out the new release tag.
+	last=$(kdist release list -n1 $base-\*)
+	case $last in
+	"")
+		# Easy case: no release has been done for that kernel,
+		# so it's a '1.1' one.
+		tag=$kernel_tag.1
+		last=$(release__get_parent) ;;
+	*)
+		# a kernel release already exists, we have to see if
+		# the kernel release needs to be increased or if it's
+		# the build number only.
+		case $last in
+		${kernel_tag}*)
+			tag=$kernel_tag.$((${last##*.}+1)) ;;
+		*)
+			tag=$kernel_tag.1 ;;
+		esac
+	esac
+
+	cat >$tmpfile <<EOF
 #
-# We want the release directory clean
+# You're about to make a new release that includes the
+# changes described below.
 #
-kdist__cd_repository
-git__check_clean_work_tree releases 2>/dev/null ||
-die "You have local changes in the 'releases' subdir of you kdist repo."
-
+# You can now inspect the changes and make improvements
+# on the generated description.
 #
-# For config we use the latest tag matching the kernel tag pattern if
-# none has been provided.
-#
-kdist__cd_repository configs
+Release $tag
 
-if ! test $config_tag
-then
-	# reuse the latest tag maching the kernel tag pattern.
-	config_tag=$(kdist tag list -n1 $kernel_tag.\*)
-	if test -z "$config_tag"; then
-		die "Unable to find a config tag for kernel '$kernel_tag'."
-	fi
-else
-	git rev-parse -q --verify $config_tag >/dev/null ||
-	die "Invalid config tag '$config_tag'."
-fi
+This release has been created with the following
+components:
 
-kdist__cd_repository packaging
+$(kdist project status)
 
-if ! test $packaging_tag
-then
-	packaging_tag=$(kdist tag list -n1 $kernel_tag.\*)
-	if test -z "$packaging_tag"; then
-		die "Unable to find a packaging tag for kernel '$kernel_tag'."
-	fi
-else
-	git rev-parse -q --verify $packaging_tag >/dev/null ||
-	die "Invalid config tag '$packaging_tag'."
-fi
+Changes since $last are as follows:
 
-#
-# Now find the release number.
-#
-kdist__cd_repository releases
-
-prev_release=$(kdist release list --match=${kernel_tag#v}.\*)
-if test "$prev_release"
-then
-	# pick up the latest one
-	prev_release=$(echo "$prev_release" | tail -n1)
-	next_release=${prev_release%.*}.$((${prev_release##*.}+1))
-else
-	next_release=${kernel_tag#v}.1
-	# find out the previous release done for the specified target.
-	prev_release=$(release__previous $next_release)
-fi
-
-#
-# 'tmpdir' will contain all the generated log files used for the
-# report.
-#
-cleanup_on_exit () {
-	rm -rf $tmpdir
-}
-trap cleanup_on_exit 0
-
-tmpdir=$(mktemp -d)
-
-#
-# Save all component versions
-#
-cat >$tmpdir/Versions<<EOF
-previous-release = $prev_release
-
-kernel     = $kernel_tag
-config     = $config_tag
-packaging  = $packaging_tag
-kdist      = $(kdist_version)
+$(kdist release log configs)
+$(kdist release log kdist)
+$(kdist release log kernel)
 EOF
+	# git-commit will trap any erros on the log, it also fails if
+	# there's nothing to commit.
+	git commit -qs --edit --file=$tmpfile ||
+	die "Failed to commit release."
 
-echo "Making release '$next_release' using the following versions:"
-echo
-while read line; do
-	echo "${line:+  - $line}"
-done <$tmpdir/Versions
-echo
-echo -n "Continue [Y/n]? "
-read yesno
-case "$yesno" in
-[nN]|[nN][oO])	die "Aborted."
-esac
-
-if test -d $next_release; then
-	die "Release $next_release already exists."
-fi
-
-
-if test $prev_release; then
-	prev_config_tag=$(kdist release info config $prev_release) &&
-	prev_kernel_tag=$(kdist release info kernel $prev_release) &&
-	prev_packaging_tag=$(kdist release info packaging $prev_release)
-fi ||
-exit
-
-#
-# Log the changes made on the config files.
-#
-print_intro () {
-	local intro="Changes made since $1:"
-	echo "$intro"
-	for ((i=1; i < ${#intro}; i++)); do
-		echo -n "="
-	done
-	echo
-	echo
+	git__tag $tag || {
+		git reset -q --hard HEAD~1
+		die "git failed to create the tag."
+	}
 }
 
-kdist__cd_repository configs &&
 
-if test $prev_release; then
-	echo "Generating config log"
-	git log --pretty="%s" $prev_config_tag..$config_tag -- \
-		$(kdist__config_version $prev_config_tag)/ \
-		$(kdist__config_version $config_tag)/ \
-		>$tmpdir/ConfigChanges.log
-fi ||
+kdist__cd_repository kernel &&
+kdist__setup_kernel_version ||
 exit
 
-#
-# Log the changes made on the packaging files
-#
-kdist__cd_repository packaging &&
+git__check_clean_work_tree ||
+die "You must have a clean kernel working tree."
 
-if test $prev_release; then
-	echo "Generating packaging log"
-	git log --pretty="%s" $prev_packaging_tag..$packaging_tag \
-		>$tmpdir/PackagingChanges.log
-fi ||
-exit
-
-#
-# Generate the "whatchanged" report using the previous release. If no
-# previous release is found, we still generate an empty file.
-#
-if test $prev_release; then
-	echo "Generating Whatchanged"
-	cd $kernel_topdir
-	kdist whatchanged $kernel_tag $prev_kernel_tag >$tmpdir/KernelChanges.log
-fi ||
-exit
-
-# drop the generated logs if empty
-cd $tmpdir
-
-if test -s KernelChanges.log; then
-	print_intro $prev_kernel_tag >KernelChanges
-	cat KernelChanges.log >>KernelChanges
-fi
-
-if test -s ConfigChanges.log; then
-	print_intro $prev_config_tag >ConfigChanges
-	cat ConfigChanges.log >>ConfigChanges
-fi
-
-if test -s PackagingChanges.log; then
-	print_intro $prev_config_tag >PackagingChanges
-	cat PackagingChanges.log >>PackagingChanges
-fi
-
-rm -f KernelChanges.log
-rm -f ConfigChanges.log
-rm -f PackagingChanges.log
-
-# Now track the new files.
-kdist__cd_repository releases
-
-mkdir -p $next_release &&
-mv $tmpdir/* $next_release &&
-git add $next_release &&
-git commit -s -m "Release $next_release"
+case $1 in
+project|kernel)
+	release__$1 "$@" ;;
+*)
+	usage
+esac

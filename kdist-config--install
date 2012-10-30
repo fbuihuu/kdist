@@ -42,7 +42,7 @@ test -z "$config" &&
 # Found.
 #
 echo "Installing $config"
-config=$(kdist__get_repository configs/$config)
+config=$(kdist__get_repository configs)/$config
 
 # Backup previous .config
 ! test -e .config || {

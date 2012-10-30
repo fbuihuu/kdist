@@ -1,0 +1,40 @@
+#! /bin/bash
+
+USAGE="<commands> [<args>]
+
+The 'project' commands are
+
+   init      Create a new kdist project
+   summary   Show changes summary of the current project state
+   status    Show the current project state
+   update    Initialize a freshly cloned project
+
+See 'kdist repository <command> --help for more information on a specific command."
+
+kdist_subcommand=$1
+shift
+
+project__summary () {
+	git submodule summary
+}
+
+project__status () {
+	git submodule status
+}
+
+project__update () {
+	git submodule update
+}
+
+case $kdist_subcommand in
+summary|status|sync|update)
+	kdist__cd_topdir
+	project__$kdist_subcommand "$@"
+	exit ;;
+init)
+	;;
+*)
+	usage
+esac
+
+source $libexecdir/kdist-$kdist_command--$kdist_subcommand "$@"

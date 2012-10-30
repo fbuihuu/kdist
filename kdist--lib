@@ -45,24 +45,6 @@ kdist__editor () {
 	${KDIST_EDITOR:-${VISUAL:-${EDITOR:-vi}}} "$@"
 }
 
-kdist__check_kernel () (
-	[ -d scripts ] && [ -d scripts/kconfig ] &&
-	[ -d arch ] && [ -d arch/x86 ] &&
-	[ -r Makefile ] &&
-	[ -d .git ] ||
-	warn "Invalid kernel directory: $(pwd -P)"
-)
-
-kdist__cd_kernel_topdir () {
-	#
-	# Linux tree must be tracked by git
-	#
-	git__check_inside_worktree &&
-	git__cd_topdir &&
-	kdist__check_kernel 2>/dev/null ||
-	warn "You must be inside a kernel repository."
-}
-
 # arch names used by kdist paths.
 kdist__architecture () {
 	local arch="$1"
@@ -86,50 +68,41 @@ kdist__config_version () {
 #
 # Kdist repository management
 #
-
-kdist__check_repository () {
-	[ -d "$1"/configs ] &&
-	[ -d "$1"/releases ] &&
-	[ -d "$1"/packaging ] ||
-		die "Invalid repository: $1"
+kdist__check_project () {
+	[ -e "$1"/configs/.git ] && [ -e "$1"/kernel/.git ] &&
+	[ -e "$1"/kdist/.git ] && [ -d "$1"/.git ] && [ -f "$1"/.gitmodules ]
 }
 
-kdist__get_repository () {
-	local path=$KDIST_DIR
-
-	if test -z "$path"
-	then
-		test -h ~/.kdist/repository ||
-		die "No repository is currently tracked by kdist."
-
-		path="$(readlink -e ~/.kdist/repository)" ||
-		die "Tracking an invalid repository: $(readlink ~/.kdist/repository)"
-
-	fi &&
-	kdist__check_repository "$path" &&
-	echo "$path${1:+/$1}"
+kdist__cd_topdir () {
+	until kdist__check_project .
+	do
+		cd .. && git__cd_topdir ||
+		die "No kdist project found."
+	done
 }
 
 kdist__cd_repository () {
-	kdist__get_repository >/dev/null
-	cd $(kdist__get_repository $1) 2>/dev/null ||
-	die "Unknown component '$1'."
+	{ kdist__cd_topdir && cd $1; } || exit
 }
 
-kdist__set_repository () {
-	local new
+kdist__get_repository () {
+	(kdist__cd_repository $1 && pwd) || exit
+}
 
-	if ! new=$(readlink -e "$1"); then
-		die "Invalid path: $1"
-	fi
-	# check for the consistency of the symlink
-	if ls ~/.kdist/repository >/dev/null 2>&1; then
-		if ! test -h ~/.kdist/repository; then
-			die "~/kdist seems to be corrupted."
-		fi
-	fi
-	kdist__check_repository "$1"
-	ln -sfT "$new" ~/.kdist/repository
+kdist__check_kernel () (
+	[ -d scripts ] && [ -d scripts/kconfig ] &&
+	[ -d arch ] && [ -d arch/x86 ] &&
+	[ -r Makefile ] &&
+	[ -e .git ] ||
+	warn "Invalid kernel directory: $(pwd -P)"
+)
+
+# FIXME: must be removed
+kdist__cd_kernel_topdir () {
+	kdist__cd_repository kernel
+	git__check_inside_worktree && # FIXME: this function is useless
+	kdist__check_kernel 2>/dev/null ||
+	warn "You must be inside a kernel repository."
 }
 
 #
