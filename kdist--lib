@@ -29,6 +29,22 @@ usage () {
 #
 # kdist general stuff
 #
+
+kdist__pager() {
+	if test -t 1
+	then
+		: ${LESS=-FRSXi}
+		export LESS
+		${KDIST_PAGER:-${PAGER:-less}} "$@"
+	else
+		cat "$@"
+	fi
+}
+
+kdist__editor () {
+	${KDIST_EDITOR:-${VISUAL:-${EDITOR:-vi}}} "$@"
+}
+
 kdist__check_kernel () (
 	[ -d scripts ] && [ -d scripts/kconfig ] &&
 	[ -d arch ] && [ -d arch/x86 ] &&
