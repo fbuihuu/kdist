@@ -35,7 +35,7 @@ esac
 type=$1
 template_opt=${template:+--template=$template}
 
-kdist__cd_kernel_topdir &&
+kdist__cd_repository kernel &&
 kdist__setup_kernel_version ||
 exit
 

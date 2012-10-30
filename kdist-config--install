@@ -22,7 +22,7 @@ if test $# -ne 1; then
 	usage
 fi
 
-kdist__cd_kernel_topdir ||
+kdist__cd_repository kernel ||
 exit
 
 #

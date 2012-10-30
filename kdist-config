@@ -126,7 +126,7 @@ config__resolve_files () {
 		*/*/*)
 			;;
 		*)
-			kdist__cd_kernel_topdir &&
+			kdist__cd_repository kernel &&
 			kdist__setup_kernel_version ||
 			return
 

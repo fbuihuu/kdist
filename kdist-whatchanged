@@ -41,7 +41,7 @@ esac
 # This script only work for the kernel, because the way it retrieves
 # the bases. Therefore be sure it's called in a kernel repository.
 #
-kdist__cd_kernel_topdir || exit
+kdist__cd_repository kernel || exit
 
 #
 # diff between two distros

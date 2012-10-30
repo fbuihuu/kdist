@@ -89,22 +89,6 @@ kdist__get_repository () {
 	(kdist__cd_repository $1 && pwd) || exit
 }
 
-kdist__check_kernel () (
-	[ -d scripts ] && [ -d scripts/kconfig ] &&
-	[ -d arch ] && [ -d arch/x86 ] &&
-	[ -r Makefile ] &&
-	[ -e .git ] ||
-	warn "Invalid kernel directory: $(pwd -P)"
-)
-
-# FIXME: must be removed
-kdist__cd_kernel_topdir () {
-	kdist__cd_repository kernel
-	git__check_inside_worktree && # FIXME: this function is useless
-	kdist__check_kernel 2>/dev/null ||
-	warn "You must be inside a kernel repository."
-}
-
 #
 # This function returns the kernel version details throught several
 # KERNEL_VERSION_xxx variables

@@ -18,7 +18,7 @@ flavour=$1
 #
 # Check the repo validities.
 #
-kdist__cd_kernel_topdir &&
+kdist__cd_repository kernel &&
 kdist__setup_kernel_version &&
 kdist__get_repository configs >/dev/null ||
 exit

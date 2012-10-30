@@ -41,7 +41,7 @@ tmpdir=$(mktemp -d)
 #
 # Sanity checks on the current config
 #
-kdist__cd_kernel_topdir &&
+kdist__cd_repository kernel &&
 kernel_path=$(pwd) ||
 exit
 

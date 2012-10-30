@@ -35,7 +35,7 @@ esac
 # log command assumes to be in a kernel repository (being tracked by
 # kdist or not).
 #
-kdist__cd_kernel_topdir || exit
+kdist__cd_repository kernel || exit
 
 #
 # It should log only distro commits but also log commits if the HEAD

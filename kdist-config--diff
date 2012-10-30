@@ -34,7 +34,7 @@ done
 #
 case $# in
 0|1)
-	kdist__cd_kernel_topdir &&
+	kdist__cd_repository kernel &&
 	test -f .config || die ".config is missing."
 	two=.config
 esac

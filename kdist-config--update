@@ -54,7 +54,7 @@ cleanup_on_error () {
 
 trap cleanup_on_exit 0
 
-kdist__cd_kernel_topdir &&
+kdist__cd_repository kernel &&
 kernel_path=$(pwd) ||
 exit
 

@@ -159,7 +159,7 @@ fi
 # Go to the kernel topdir so we can first adjust the tar filename:
 # include the release version number.
 #
-kdist__cd_kernel_topdir || exit
+kdist__cd_repository kernel || exit
 
 git__check_clean_work_tree ||
 	warn "Your local changes won't be included in the tarball"

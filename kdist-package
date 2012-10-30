@@ -175,7 +175,7 @@ package__main () {
 	local target=$1
 	local scmversion=
 
-	kdist__cd_kernel_topdir &&
+	kdist__cd_repository kernel &&
 	kdist__setup_kernel_version $package_tag &&
 	scmversion=$(git__scmversion $package_tag) ||
 	exit
