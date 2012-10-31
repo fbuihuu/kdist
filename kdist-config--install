@@ -1,5 +1,6 @@
 #! /bin/bash
 
+SUMMARY="Set up a config for the tracked kernel"
 
 USAGE="install [--no-flavour] <pattern>"
 

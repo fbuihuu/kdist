@@ -22,10 +22,6 @@ bug () {
 	exit 2
 }
 
-usage () {
-	die "$(basename $0) $kdist_command $USAGE"
-}
-
 #
 # kdist general stuff
 #

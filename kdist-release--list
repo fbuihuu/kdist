@@ -1,6 +1,8 @@
 #! /bin/bash
 
-USAGE="list [--help] [--self-tests] [-n<digit>] [-r] [<pattern>]"
+SUMMARY="List the releases made for the project or the kernel"
+
+USAGE="[--help] [--self-tests] [-n<digit>] [-r] [<pattern>]"
 
 #
 # Version sort

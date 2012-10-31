@@ -1,6 +1,8 @@
 #! /bin/bash
 
-USAGE="project [--help]"
+SUMMARY="Create a global project release"
+
+USAGE="[--help]"
 
 
 if test $# -gt 0; then

@@ -1,5 +1,7 @@
 #! /bin/bash
 
+SUMMARY="Give information about a kernel configuration"
+
 USAGE="info [<path>]"
 
 while

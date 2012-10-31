@@ -9,7 +9,8 @@ KDIST	= kdist
 
 KDIST_SCRIPTS = \
 	kdist-project kdist-project--init kdist-config kdist-config--apply \
-	kdist-config--diff kdist-config--info kdist--lib kdist--lib-git
+	kdist-config--diff kdist-config--info kdist--lib kdist--lib-git \
+	kdist--lib-usage
 
 KDIST_LIBEXECS = $(KDIST_SCRIPTS)
 

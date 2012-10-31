@@ -1,6 +1,8 @@
 #! /bin/bash
 
-USAGE="update [--help]"
+SUMMARY="Initialize a freshly cloned project"
+
+USAGE="[--help]"
 
 if test $# -gt 0; then
 	usage

@@ -1,22 +1,8 @@
 #! /bin/bash
 
+SUMMARY="Deal with kernel configs operations"
 
-
-USAGE="<command> [<args>]
-
-The 'config' commands are:
-
-   apply        Apply a diff to one config
-   diff         Show diff between two configs
-   import       Record the current config to the kdist config db
-   info         Give information about a kernel configuration
-   install      Set up a config for the tracked kernel
-   list         List available configs matching the given pattern
-   propagate    Propagate a change to specified configs
-   update       Update configurations using a given kernel
-   upgrade      Use a template to upgrade a set of configurations
-
-See 'kdist config <command> --help' for more information on a specific command."
+USAGE="<command> [<args>]"
 
 while
 	case $1 in

@@ -1,6 +1,8 @@
 #! /bin/bash
 
-USAGE="kernel [--help]"
+SUMMARY="Create a new kernel release"
+
+USAGE="[--help]"
 
 
 if test $# -gt 0; then

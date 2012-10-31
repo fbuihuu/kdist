@@ -1,15 +1,8 @@
 #! /bin/bash
 
-USAGE="<commands> [<args>]
+SUMMARY="Manage a kdist super project"
 
-The 'project' commands are
-
-   init      Create a new kdist project
-   summary   Show changes summary of the current project state
-   status    Show the current project state
-   update    Initialize a freshly cloned project
-
-See 'kdist repository <command> --help for more information on a specific command."
+USAGE="<commands> [<args>]"
 
 while
 	case $1 in

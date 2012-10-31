@@ -1,5 +1,7 @@
 #! /bin/bash
 
+SUMMARY="List available configs matching the given pattern"
+
 USAGE="list [--type=<name>] [--fullpath] <pattern>"
 
 type_opt=

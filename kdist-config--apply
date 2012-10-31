@@ -1,6 +1,8 @@
 #! /bin/bash
 
-USAGE="apply [-v] [--strict] [--verify] <config>"
+SUMMARY="Apply a diff to one config"
+
+USAGE="[-v] [--strict] [--verify] <config>"
 
 strict=
 verify=

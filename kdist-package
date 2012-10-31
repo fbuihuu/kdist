@@ -1,5 +1,7 @@
 #! /bin/bash
 
+SUMMARY="Build various packages (source, binary, devel...)"
+
 USAGE=" [--distrib=<name>] [--type=src|bin|tar] [<args>]
 
    --distrib    Force the target distribution

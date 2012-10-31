@@ -1,5 +1,7 @@
 #! /bin/bash
 
+USAGE="[--version] <command> [<args>]"
+
 #
 # Subcommands may need to invoke again kdist, be sure that the same
 # version is used.
@@ -42,34 +44,6 @@ if test -z "$KDIST_RESTRICTED_MODE"; then
 	else
 		export KDIST_RESTRICTED_MODE=yes
 	fi
-fi
-
-#
-# It's now safe to call kdist__restricted_mode() now.
-#
-if kdist__restricted_mode
-then
-	USAGE="Usage: kdist [--version] <command> [<args>]
-
-The kdist restricted commands are:
-
-   config       Deal with kernel configs operations.
-   project      Manage a kdist super project.
-
-See 'kdist <command> --help' for more information on a specific command."
-else
-	USAGE="Usage: kdist [--version] <command> [<args>]
-
-The kdist commands are:
-
-   config       Deal with kernel configs operations.
-   log          Show what changed between different kernel version.
-   package      Build various packages (source, binary, devel...).
-   project      Manage a kdist super project.
-   release      Deal with kernel release operations.
-   whatchanged  Show what happened between two releases.
-
-See 'kdist <command> --help' for more information on a specific command."
 fi
 
 while

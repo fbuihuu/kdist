@@ -1,5 +1,7 @@
 #! /bin/bash
 
+SUMMARY="Show what changed between different kernel version"
+
 USAGE="[--no-pager] [-v] [--all] [<git-log options>] [branch]"
 
 declare -a gitopts

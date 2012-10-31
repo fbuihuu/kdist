@@ -1,15 +1,8 @@
 #! /bin/bash
 
-USAGE="<command> [<args>]
+SUMMARY="Deal with kernel release operations"
 
-The 'release' commands are:
-
-   kernel    Create a new kernel release
-   project   Create a global project release
-   log       Gives some information on a release
-   list      List the releases made for a given target
-
-See 'kdist release <command> --help for more information on a specific command."
+USAGE="<command> [<args>]"
 
 release__get_parent () {
 	git describe --always --abbrev=0 $1~1

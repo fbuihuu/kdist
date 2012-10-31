@@ -1,7 +1,8 @@
 #! /bin/bash
 
+SUMMARY="Gives some information on a specific release"
 
-USAGE="log [--help] [--since=<since>] <module> [<rev>]
+USAGE="[--help] [--since=<since>] <module> [<rev>]
 
    rev       The release which the log should be started from
    since     A previous release since the log should be generated"

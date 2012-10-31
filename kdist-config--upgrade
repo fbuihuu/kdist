@@ -10,6 +10,8 @@
 # since a lot of new configurations will be the same. You'll be
 # prompted for i586 specific symbol values only.
 #
+SUMMARY="Use a template to upgrade a set of configurations"
+
 USAGE="upgrade [--template=<file>] [--from=<version>] <type>"
 
 declare -a targets

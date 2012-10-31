@@ -1,0 +1,68 @@
+#! /bin/bash
+
+usage__print_with_commands () {
+	local name=$1; shift
+	local cmd=$1; shift
+
+	warn "Usage: $cmd $USAGE"
+	if test $# -eq 0; then
+		return
+	fi
+
+	kdist__restricted_mode &&
+	echo -e "\nThe $name (restricted) commands are:\n" ||
+	echo -e "\nThe $name commands are:\n"
+
+	for s; do
+		eval $(grep ^SUMMARY= $s)
+		printf "  %-15s  %s\n" "${s##*-}" "$SUMMARY"
+	done
+	echo
+	echo "See '$cmd <command> --help' for more information on a specific command."
+} >&2
+
+usage__kdist () {
+	for s in kdist-*
+	do
+		case $s in
+		kdist-*--*)	continue ;;
+		kdist--lib*)	continue ;;
+		esac
+		list+="$s "
+	done
+	usage__print_with_commands kdist kdist $list
+}
+
+usage__command () {
+	# Command may not have any subcommands.
+	for s in $(ls kdist-$kdist_command--* 2>/dev/null)
+	do
+		case $s in
+		kdist-*--*---*)	continue ;;
+		esac
+		list+="$s "
+	done
+	usage__print_with_commands $kdist_command "kdist $kdist_command" $list
+}
+
+usage__subcommand () {
+	warn "Usage: kdist $kdist_command $kdist_subcommand $USAGE"
+}
+
+kdist__usage () {
+	cd $libexecdir
+
+	if test $kdist_subcommand; then
+		usage__subcommand
+	else
+		if test $kdist_command; then
+			usage__command
+		else
+			usage__kdist
+		fi
+	fi
+	exit 1
+}
+
+# Temporary alias
+usage () { kdist__usage; }

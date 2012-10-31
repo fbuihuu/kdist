@@ -1,6 +1,8 @@
 #! /bin/bash
 
-USAGE="status [--help]"
+SUMMARY="Show the current project state"
+
+USAGE="[--help]"
 
 if test $# -gt 0; then
 	usage

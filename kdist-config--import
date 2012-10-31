@@ -1,5 +1,7 @@
 #! /bin/bash
 
+SUMMARY="Record the current config to the kdist config db"
+
 USAGE="import [<flavour>]"
 
 while :

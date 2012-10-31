@@ -1,5 +1,7 @@
 #! /bin/bash
 
+SUMMARY="Show what happened between two releases"
+
 USAGE="[-v] [--debug] [--header] [--stat] <new> [<old>]"
 
 
