@@ -100,7 +100,6 @@ package_devel () (
 suffix=tar
 zip=cat
 rev=
-output_directory=
 tar=
 quiet=
 
@@ -155,12 +154,15 @@ then
 	fi
 
 	output_directory=$(readlink -e "$output_directory")
+else
+	output_directory=$(pwd)
 fi
 
 #
 # Go to the kernel topdir so we can first adjust the tar filename:
 # include the release version number.
 #
+origin_directory=$(pwd)
 kdist__cd_repository kernel || exit
 
 git__check_clean_work_tree ||
@@ -220,7 +222,7 @@ set -o pipefail
 }
 
 if ! test $quiet && test "$tar" != /dev/stdout; then
-	echo $tar
+	echo ${tar#$origin_directory/}
 fi
 
 # archive is now finished, clear 'tar' var so we don't remove the file
