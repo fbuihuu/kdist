@@ -1,0 +1,63 @@
+#! /bin/bash
+
+USAGE="kernel [--help]"
+
+
+if test $# -gt 0; then
+	usage
+fi
+
+release__kernel () {
+	local n
+
+	#
+	# Pick up the kernel revision from the main Makefile then list
+	# the tags using it as pattern and take the latest rev from
+	# the list.
+	#
+	base=$(kdist__make_tag)
+	last=$(kdist release list -n1 $base-\*)
+	case "$last" in
+	"")	n=1;;
+	*)	n=$((${last##*-} + 1))
+	esac
+	tag=$(kdist__make_tag $n)
+
+	# We know that the kernel repo is clean so the scmversion
+	# indicates an exact match only.
+	git describe --exact-match --match=${tag%-*}-\* &>/dev/null &&
+	warn "You're about to create an empty release."
+
+	echo -n "Tag 'kernel' with: $tag [Y/n]? "
+	read -p "Create new kernel release: $tag [Y/n]? " yesno
+	case $yesno in
+	y|yes)	;;
+	*)	die "Aborted."
+	esac
+
+	# 'n' can be different from 'KERNEL_VERSION_PACKAGE + 1'
+	if test $KERNEL_VERSION_PACKAGE; then
+		sed -i "/EXTRAVERSION =/s/-$KERNEL_VERSION_PACKAGE/-$n/" Makefile
+	else
+		sed -i "s/EXTRAVERSION =.*/&-$n/" Makefile
+	fi ||
+	die "failed to update the top Makefile"
+
+	if ! git commit -qs -m "Mandriva Release $tag"; then
+		git checkout -- Makefile
+		die "git failed to commit the release."
+	fi
+	if ! git__tag $tag; then
+		git reset -q --hard HEAD~1
+		die "git failed to create the tag."
+	fi
+}
+
+kdist__cd_repository kernel &&
+kdist__setup_kernel_version ||
+exit
+
+git__check_clean_work_tree ||
+die "You must have a clean kernel working tree."
+
+release__kernel "$@"

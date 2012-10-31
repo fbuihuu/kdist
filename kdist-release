@@ -11,6 +11,10 @@ The 'release' commands are:
 
 See 'kdist release <command> --help for more information on a specific command."
 
+release__get_parent () {
+	git describe --always --abbrev=0 $1~1
+}
+
 while
 	case $1 in
 	-*)	usage ;;
@@ -22,12 +26,4 @@ done
 
 kdist_subcommand=$1
 shift
-
-release__get_parent () {
-	git describe --always --abbrev=0 $1~1
-}
-
-case $kdist_subcommand in
-project|kernel) kdist_subcommand="new $kdist_subcommand";;
-esac
 kdist__run_handler "$@"
