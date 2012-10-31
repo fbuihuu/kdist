@@ -27,6 +27,7 @@ all:
 install:
 	$(INSTALL) -m755 -d $(DESTDIR)$(bindir)
 	$(INSTALL) -m755 -d $(DESTDIR)$(libexecdir)
+	$(RM) -r $(DESTDIR)$(libexecdir)/*
 	$(INSTALL) $(KDIST) $(DESTDIR)$(bindir)
 	$(INSTALL) $(KDIST_LIBEXECS) $(DESTDIR)$(libexecdir)
 	sed -i  -e "s|^LIBEXECDIR=.*|LIBEXECDIR=$(libexecdir)|" \
