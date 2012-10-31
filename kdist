@@ -38,9 +38,8 @@ source $libexecdir/kdist--lib || exit
 #
 if test -z "$KDIST_RESTRICTED_MODE"; then
 	if (kdist__cd_topdir 2>/dev/null); then
-		kdist__cd_topdir
 		export KDIST_RESTRICTED_MODE=no
-		exec kdist/kdist "$@"
+		exec $(kdist__get_repository kdist)/kdist "$@"
 	else
 		export KDIST_RESTRICTED_MODE=yes
 	fi
