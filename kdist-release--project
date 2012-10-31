@@ -36,7 +36,7 @@ release__project () {
 		# Easy case: no release has been done for that kernel,
 		# so it's a '1.1' one.
 		tag=$kernel_tag.1
-		last=$(release__get_parent) ;;
+		last=$(release__get_parent HEAD) ;;
 	*)
 		# a kernel release already exists, we have to see if
 		# the kernel release needs to be increased or if it's
