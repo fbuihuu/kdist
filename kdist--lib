@@ -65,6 +65,15 @@ kdist__version() (
 	echo $version
 )
 
+kdist__run_handler () {
+	local script=kdist-$kdist_command${kdist_subcommand:+--$kdist_subcommand}
+	local path=$libexecdir/$script
+
+	test -r $path ||
+	die "'${kdist_subcommand:-$kdist_command}' command not found."
+	source $path "$@"
+}
+
 kdist__pager() {
 	if test -t 1
 	then

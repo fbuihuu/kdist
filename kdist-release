@@ -29,6 +29,5 @@ release__get_parent () {
 
 case $kdist_subcommand in
 project|kernel) kdist_subcommand="new $kdist_subcommand";;
-log|list)	;;
 esac
-source $libexecdir/kdist-$kdist_command--$kdist_subcommand "$@"
+kdist__run_handler "$@"

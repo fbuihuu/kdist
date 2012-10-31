@@ -89,12 +89,4 @@ done
 
 kdist_command=$1
 shift
-
-#
-# Call the command handler: it assumes to be in kdist topdir.
-#
-if ! test -f $libexecdir/kdist-$kdist_command; then
-	die "'$kdist_command' command not found."
-fi
-
-source $libexecdir/kdist-$kdist_command "$@"
+kdist__run_handler "$@"

@@ -244,11 +244,4 @@ config__restore_repository () {
 	cd - >/dev/null
 }
 
-#
-# start the config sub command
-#
-script=$libexecdir/kdist-$kdist_command--$kdist_subcommand
-if ! test -f "$script"; then
-	usage
-fi
-source "$script" "$@"
+kdist__run_handler "$@"

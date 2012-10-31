@@ -22,12 +22,4 @@ done
 
 kdist_subcommand=$1
 shift
-
-case $kdist_subcommand in
-init|summary|status|update)
-	;;
-*)
-	usage
-esac
-
-source $libexecdir/kdist-$kdist_command--$kdist_subcommand "$@"
+kdist__run_handler "$@"

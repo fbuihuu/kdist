@@ -288,4 +288,5 @@ package__main () {
 	}
 }
 
-source $libexecdir/kdist-package--$package_type
+kdist_subcommand=$package_type
+kdist__run_handler "$@"
