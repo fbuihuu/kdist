@@ -1,0 +1,57 @@
+#! /bin/bash
+
+SUMMARY="Build source packages for the specified distribution"
+
+USAGE="[-v] [--distrib=<name>] [--release=<num>] [--with-source] [--output-dir|-o <dir>] [-r <tag>] [<pkg-mngr-opts>] [<flavour>|source|headers|firmware|tools/<name>]
+
+   <flavour>         Package the kernel using the specified flavour
+   source            Package the kernel sources
+   headers           Package the kernel header files
+   firmware          Package the firmware
+   tools/<name>      Package a named kernel tool
+
+   --with-source     Build a package embedding the kernel source
+   -r                Specify the kernel revision to package
+   --release         Specify the distribution release number
+   --output-dir      Use <dir> to store the resulting files
+   --distrib         Force the distribution target
+"
+
+no_source=1
+
+while
+	case $1 in
+	-v|--verbose)
+		verbose=yes ;;
+	--release=*)
+		release_build=${1#*=} ;;
+	--with-source)
+		no_source=0 ;;
+	-r)
+		shift
+		package_tag=$1 ;;
+	-o)
+		shift
+		output_directory=$1 ;;
+	--output-dir=*)
+		output_directory=${1#*=} ;;
+	--distrib=*)
+		package_distrib=${1#--distrib=} ;;
+	*)
+		break
+	esac
+do
+	shift
+done
+
+package__init
+
+case $package_type in
+rpm)	source $libexecdir/kdist-package--source---rpm ;;
+esac ||
+exit
+
+if test $# -ne 1; then
+	usage
+fi
+package__main $1

@@ -1,0 +1,44 @@
+#! /bin/bash
+
+SUMMARY="Generate various binary packages"
+
+USAGE="[-v] [--distrib=<name>] [--output-dir|-o <dir>] [<pkg-mngr-opts>] [source|headers|firmware|tools/<name>]
+
+   source            Package the kernel sources
+   headers           Package the kernel header files
+   firmware          Package the firmware
+   tools/<name>      Package a named kernel tool
+
+   --output-dir      Use <dir> to store the resulting files
+   --distrib         Force the distribution target
+"
+
+while
+	case $1 in
+	-v|--verbose)
+		verbose=yes ;;
+	-o)
+		shift
+		output_directory=$1 ;;
+	--output-dir=*)
+		output_directory=${1#*=} ;;
+	--distrib=*)
+		package_distrib=${1#--distrib=} ;;
+	*)
+		break
+	esac
+do
+	shift
+done
+
+package__init
+
+case $package_type in
+rpm)	source $libexecdir/kdist-package--binary---rpm ;;
+esac ||
+exit
+
+if test $# -ne 1; then
+	usage
+fi
+package__main $1

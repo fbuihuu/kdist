@@ -1,21 +1,12 @@
 #! /bin/bash
 
-USAGE="--type=src [-v] [--show-spec|--annotate-spec] [--spec=<specfile>] [--release=<num>] [--with-source] [--output-dir|-o <dir>] [-r <tag>] [<flavour>|source|headers|firmware|tools/<name>]
+USAGE+="
+ Specific rpm options:
+ ---------------------
 
-   <flavour>         Package the kernel using the specified flavour
-   source            Package the kernel sources
-   headers           Package the kernel header files
-   firmware          Package the firmware
-   tools/<name>      Package a named kernel tool
-
-   --with-source     Build a package embedding the kernel source
-
-   -r                Specify the kernel revision to package
    --spec            Specify the .spec file to use
    --show-spec       Show the generated spec file and exit
    --annontate-spec  Show the generated spec file with annotations and exit
-   --release         Specify the distribution release number
-   --output-dir      Use <dir> to store the resulting files
 "
 
 create_archive () {
@@ -31,7 +22,7 @@ create_archive () {
 		)
 		return
 	fi
-	kdist package --type=tar --prefix=$package_archive/ -r $rev \
+	kdist package tar --prefix=$package_archive/ -r $rev \
 		-q -j -o $SOURCES/$package_archive.tar.bz2 ${1%%/*}
 }
 
@@ -64,7 +55,7 @@ package_flavour () {
 	# debuginfo package.
 	#
 	say "Extracting kernel $src_uname_r source code"
-	kdist package --type=tar --prefix=$package_archive/ -r $rev source | \
+	kdist package tar --prefix=$package_archive/ -r $rev source | \
 		tar -C $SOURCES -xf - || exit
 
 	#
@@ -219,15 +210,10 @@ package_flavour () {
 # Variables using 0/1 as init values are used by conditionnal
 # expressions in the specfile.
 #
-no_source=1
 spec_only=
 
 while
 	case $1 in
-	-v|--verbose)
-		verbose=yes ;;
-	--release=*)
-		release_build=${1#*=} ;;
 	--show-spec)
 		spec_only=yes ;;
 	--annotate-spec)
@@ -235,16 +221,6 @@ while
 		rpm_annotate_spec=true ;;
 	--spec=*)
 		rpm_specfile=${1#*=} ;;
-	--with-source)
-		no_source=0 ;;
-	-r)
-		shift
-		package_tag=$1 ;;
-	-o)
-		shift
-		rpm__set_output_directory "$1" || exit ;;
-	--output-dir=*)
-		rpm__set_output_directory "${1#*=}" || exit ;;
 	-*)
 		usage ;;
 	*)
@@ -254,9 +230,4 @@ do
 	shift
 done
 
-if test $# -gt 1; then
-	usage
-fi
-
-rpm__init &&
-package__main $1
+rpm__init_src

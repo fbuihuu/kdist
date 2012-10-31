@@ -5,16 +5,13 @@ declare -A rpm_bconds
 
 rpm_log=false
 rpm_annotate_spec=false
-
+rpm_src_rpm=0
 rpm_specfile=
 
 __resolve_one_spec () {
-	local build_srpm=0
 	local tmpfile1=$(mktemp)
 	local tmpfile2=$(mktemp)
 	local rpm_exclusive=$(echo $(rpm__architecture $rpm_exclusive))
-
-	[ $package_type == srpm ] && build_srpm=1
 
 	if test -z "$package_description"; then
 		package_description="This %{name} is for testing purpose only."
@@ -37,7 +34,7 @@ __resolve_one_spec () {
 		-e "s,@RPM_EXCLUSIVE@,$rpm_exclusive," \
 		-e "s,@ARCHIVE@,$package_archive," \
 		-e "s,@NO_SOURCE@,$no_source," \
-		-e "s,@BUILD_SRPM@,$build_srpm," $1
+		-e "s,@BUILD_SRPM@,$rpm_src_rpm," $1
 
 	rm -f $tmpfile1 $tmpfile2
 }
@@ -212,7 +209,7 @@ rpm__set_output_directory () {
 	shopt -s extglob &&
 	rpm_output_directory_user=${1%%*(/)}/ &&
 	shopt -u extglob ||
-	warn "Invalid output directory '$1'."
+	die "Invalid output directory '$1'."
 }
 
 rpm_tmpdir=
@@ -267,6 +264,10 @@ rpm__init () {
 		die "you must install rpmbuild first."
 	fi
 
+	if [ -n "$output_directory" ]; then
+		rpm__set_output_directory "$output_directory"
+	fi
+
 	if [ -n "$rpm_specfile" ]; then
 		[ -r "$rpm_specfile" ] ||
 			die "failed to read '$rpm_specfile'"
@@ -281,4 +282,14 @@ rpm__init () {
 	}
 	trap cleanup_on_exit 0
 	rpm__mktemp
+}
+
+rpm__init_src () {
+	rpm_src_rpm=1
+	rpm__init
+}
+
+rpm__init_bin () {
+	rpm_src_rpm=0
+	rpm__init
 }

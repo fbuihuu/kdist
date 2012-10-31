@@ -1,6 +1,8 @@
 #! /bin/bash
 
-USAGE="--type=tar [-q] [-z|-j] [--prefix=<prefix>] [--output-dir|-o <dir>] [-r <rev>] source|headers|devel|firmware|tools
+SUMMARY="Generate variaus source tar archives"
+
+USAGE="[-q] [-z|-j] [--prefix=<prefix>] [--output-dir|-o <dir>] [-r <rev>] source|headers|devel|firmware|tools
 
    source            Create a tarball of the kernel source
    headers           Create a tarball of the kernel headers

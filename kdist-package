@@ -1,50 +1,34 @@
 #! /bin/bash
 
-SUMMARY="Build various packages (source, binary, devel...)"
+SUMMARY="Build various packages (source, binary, devel...) of different types"
 
-USAGE=" [--distrib=<name>] [--type=src|bin|tar] [<args>]
+USAGE="<command> [<args>]"
 
-   --distrib    Force the target distribution
-
-   --type
-         src    Generate various source packages (defaut)
-         bin    Generate various binary packages
-         tar    Generate variaus source tar archives
-
-See 'kdist package <command> --help' for more information on a specific command."
 
 output_directory=
-package_type=src
-package_distrib=Mandriva
+package_type=
+package_distrib=
 
-while
-	case $1 in
-	--distrib=*)	package_distrib=${1#--distrib=} ;;
-	--type=*)	package_type=${1#--type=} ;;
-	*)		break
+package__init () {
+	# This should be auto-detected
+	: ${package_distrib:=Mandriva}
+
+	# use lowercase.
+	package_distrib=${package_distrib,,}
+
+	case $package_distrib in
+	mandriva)	package_type=rpm ;;
+	*)		die "'${package_distrib%%/*}' is currently not supported."
 	esac
-do
-	shift
-done
 
-case $package_type in
-src|source|bin|binary|tar) ;;
-*) die "Invalide package type '$package_type'"
-esac
+	case $package_distrib in
+	*/*)	;;
+	*)	package_distrib+=/default
+	esac
 
-# use lowercase.
-package_distrib=${package_distrib,,}
-case $package_distrib in
-*/*)	;;
-*)	package_distrib+=/default
-esac
-
-case ${package_distrib%%/*},$package_type in
-mandriva,src|source)	package_type=srpm ;;
-mandriva,bin|binary)	package_type=rpm ;;
-*,tar)			package_type=tar ;;
-*)			die "Unknown distribution"
-esac
+	test -d $libexecdir/templates/$package_distrib ||
+	die "No templates found for '$package_distrib'"
+}
 
 #
 # This list the devel files using a given tree object
@@ -290,5 +274,16 @@ package__main () {
 	}
 }
 
-kdist_subcommand=$package_type
+
+while
+	case $1 in
+	-*)		usage ;;
+	*)		break
+	esac
+do
+	shift
+done
+
+kdist_subcommand=$1
+shift
 kdist__run_handler "$@"

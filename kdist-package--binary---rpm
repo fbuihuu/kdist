@@ -1,23 +1,19 @@
 #! /bin/bash
 
-USAGE="[--type=bin] [-v] [--show-spec|--annotate-spec] [--spec=<specfile>] [--output-dir|-o <dir>] [--with=...] [--without=...] [source|headers|firmware|tools/<name>]
+USAGE+="
+ Specific rpm options:
+ ---------------------
 
-   source            Package the kernel sources
-   headers           Package the kernel header files
-   firmware          Package the firmware
-   tools/<name>      Package a named kernel tool
-
-   --output-dir      Use <dir> to store the resulting files
    --show-spec       Show the generated spec file and exit
    --annontate-spec  Show the generated spec file with annotations and exit
    --spec            Specify the .spec file to use
-
    --with=...        Pass with conditionnals to generate the rpm package
    --without=...     Pass without conditionnals to generate the rpm package
 "
 
+package_source () {
 	say "Extracting kernel $src_uname_r source code"
-	kdist package --type=tar -q --prefix=$package_archive/ -j \
+	kdist package tar -q --prefix=$package_archive/ -j \
 		-o $SOURCES/$package_archive.tar.bz2 source &&
 	show_spec source >$SPECS/$package_name.spec &&
 	rpm__rpmbuild -bb $SPECS/$package_name.spec
@@ -92,8 +88,6 @@ rpm__add_bconds --without=debuginfo
 
 while
 	case $1 in
-	-v|--verbose)
-		verbose=yes ;;
 	--show-spec)
 		spec_only=yes ;;
 	--annotate-spec)
@@ -103,11 +97,6 @@ while
 		rpm_specfile=${1#*=} ;;
 	--with=*|--without=*)
 		rpm__add_bconds $1 ;;
-	-o)
-		shift
-		rpm__set_output_directory "$1" || exit ;;
-	--output-dir=*)
-		rpm__set_output_directory "${1#*=}" || exit ;;
 	-*)
 		usage ;;
 	*)
@@ -116,10 +105,6 @@ while
 do
 	shift
 done
-
-if test $# -gt 1; then
-	usage
-fi
 
 case $1 in
 firmware|headers|source|tools/*)
@@ -134,5 +119,4 @@ firmware|headers|source|tools/*)
 	usage
 esac
 
-rpm__init &&
-package__main $1
+rpm__init_bin
