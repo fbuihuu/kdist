@@ -23,24 +23,8 @@ done
 kdist_subcommand=$1
 shift
 
-project__summary () {
-	git submodule summary
-}
-
-project__status () {
-	git submodule status
-}
-
-project__update () {
-	git submodule update
-}
-
 case $kdist_subcommand in
-summary|status|sync|update)
-	kdist__cd_topdir
-	project__$kdist_subcommand "$@"
-	exit ;;
-init)
+init|summary|status|update)
 	;;
 *)
 	usage

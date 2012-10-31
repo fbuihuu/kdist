@@ -1,0 +1,10 @@
+#! /bin/bash
+
+USAGE="summary [--help]"
+
+if test $# -gt 0; then
+	usage
+fi
+
+kdist__cd_topdir &&
+git submodule summary
