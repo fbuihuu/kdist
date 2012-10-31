@@ -64,12 +64,21 @@ components:
 
 $(kdist project status)
 
+EOF
+	if test $last; then
+		cat <<EOF
 Changes since $last are as follows:
 
 $(kdist release log configs)
 $(kdist release log kdist)
 $(kdist release log kernel)
 EOF
+	else
+		cat <<EOF
+No parent release was found.
+EOF
+	fi >>$tmpfile
+
 	# git-commit will trap any erros on the log, it also fails if
 	# there's nothing to commit.
 	git commit -qs --edit --file=$tmpfile ||
