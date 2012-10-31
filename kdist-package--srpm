@@ -18,9 +18,6 @@ USAGE="--type=src [-v] [--show-spec|--annotate-spec] [--spec=<specfile>] [--rele
    --output-dir      Use <dir> to store the resulting files
 "
 
-source $libexecdir/kdist-package--rpm-common
-
-
 create_archive () {
 	local rev=${package_tag:-HEAD}
 

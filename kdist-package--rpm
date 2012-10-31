@@ -16,9 +16,6 @@ USAGE="[--type=bin] [-v] [--show-spec|--annotate-spec] [--spec=<specfile>] [--ou
    --without=...     Pass without conditionnals to generate the rpm package
 "
 
-source $libexecdir/kdist-package--rpm-common
-
-package_source () {
 	say "Extracting kernel $src_uname_r source code"
 	kdist package --type=tar -q --prefix=$package_archive/ -j \
 		-o $SOURCES/$package_archive.tar.bz2 source &&
