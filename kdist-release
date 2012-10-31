@@ -1,11 +1,11 @@
 #! /bin/bash
 
-SUMMARY="Deal with kernel release operations"
+SUMMARY="Manage kernel and project releases"
 
 USAGE="<command> [<args>]"
 
 release__get_parent () {
-	git describe --always --abbrev=0 $1~1
+	git describe --abbrev=0 ${1:-HEAD}~1 2>/dev/null
 }
 
 while
