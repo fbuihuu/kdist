@@ -41,7 +41,7 @@ release__kernel () {
 	else
 		sed -i "s/EXTRAVERSION =.*/&-$n/" Makefile
 	fi ||
-	die "failed to update the top Makefile"
+	die "Failed to update the top Makefile"
 
 	cat >$tmpfile <<EOF
 #
@@ -51,7 +51,8 @@ release__kernel () {
 #
 Kernel Release $tag
 EOF
-	if ! git commit -qs --edit --file=$tmpfile; then
+	# The repository is cleaned, so it's safe to use '-a' here.
+	if ! git commit -aqs --edit --file=$tmpfile; then
 		git checkout -- Makefile
 		die "Failed to commit kernel release."
 	fi
