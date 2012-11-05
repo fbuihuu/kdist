@@ -140,7 +140,10 @@ case $#,$1 in
 esac
 
 #
-# Sanitize output dir now since we might move to the kernel topdir
+# Leaving 'tar' empty means that the name of the the tarball is going
+# to be generated. Leaving 'output_directory' empty means that the
+# output will be written to stdout and 'tar' will be ignored in that
+# case.
 #
 if test "$output_directory"
 then
@@ -154,8 +157,12 @@ then
 	fi
 
 	output_directory=$(readlink -e "$output_directory")
-else
+elif test -t 1
+then
+	tar=
 	output_directory=$(pwd)
+else
+	output_directory=
 fi
 
 #
@@ -191,12 +198,13 @@ HEAD|"")
 	rev=$(git describe --tags --abbrev=4 HEAD) ;;
 esac
 
-tar=${tar:-kernel-$1-${rev#v}.$suffix}
-if test "$output_directory"; then
+case $output_directory in
+"")
+	tar=/dev/stdout ;;
+*)
+	tar=${tar:-kernel-$1-${rev#v}.$suffix}
 	tar=$output_directory/$tar
-elif ! test -t 1; then
-	tar=/dev/stdout
-fi
+esac
 
 #
 # Do the tarball
