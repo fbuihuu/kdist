@@ -1,5 +1,7 @@
 #! /bin/bash
 
+SUMMARY="Create a kdist project"
+
 USAGE="create --kernel=<kernel-repository> --configs=<configs-repository> --kdist=<kdist-repository> <path>"
 
 config_repo=
