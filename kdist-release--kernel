@@ -11,6 +11,8 @@ fi
 
 release__kernel () {
 	local n
+	local tmpfile=$(mktemp)
+	trap "rm -f $tmpfile" 0
 
 	#
 	# Pick up the kernel revision from the main Makefile then list
@@ -27,15 +29,11 @@ release__kernel () {
 
 	# We know that the kernel repo is clean so the scmversion
 	# indicates an exact match only.
-	git describe --exact-match --match=${tag%-*}-\* &>/dev/null &&
-	warn "You're about to create an empty release."
-
-	echo -n "Tag 'kernel' with: $tag [Y/n]? "
-	read -p "Create new kernel release: $tag [Y/n]? " yesno
-	case $yesno in
-	y|yes)	;;
-	*)	die "Aborted."
-	esac
+	git describe --exact-match --match=${tag%-*}-\* &>/dev/null && {
+		warn "You're about to create an empty release."
+		read -p "Please, confirm [N/y]?  " yesno
+		case $yesno in y|yes) ;; *) die "Aborted." ;; esac
+	}
 
 	# 'n' can be different from 'KERNEL_VERSION_PACKAGE + 1'
 	if test $KERNEL_VERSION_PACKAGE; then
@@ -45,13 +43,21 @@ release__kernel () {
 	fi ||
 	die "failed to update the top Makefile"
 
-	if ! git commit -qs -m "Mandriva Release $tag"; then
+	cat >$tmpfile <<EOF
+#
+# You're about to make a new kernel release.
+#
+# You can amend the commit log now.
+#
+Kernel Release $tag
+EOF
+	if ! git commit -qs --edit --file=$tmpfile; then
 		git checkout -- Makefile
-		die "git failed to commit the release."
+		die "Failed to commit kernel release."
 	fi
 	if ! git__tag $tag; then
 		git reset -q --hard HEAD~1
-		die "git failed to create the tag."
+		die "Failed to create the tag."
 	fi
 }
 
