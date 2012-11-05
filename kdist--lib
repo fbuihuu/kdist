@@ -211,6 +211,9 @@ version__is_released () {
 #
 # Include all other libs now
 #
-for lib in $(ls $libexecdir/kdist--lib-* 2>/dev/null); do
+for lib in $(ls -B $libexecdir/kdist--lib-* 2>/dev/null); do
+	case $(basename $lib) in
+	*~*)	continue ;;
+	esac
 	source $lib || exit
 done
