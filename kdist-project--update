@@ -1,6 +1,6 @@
 #! /bin/bash
 
-SUMMARY="Initialize a freshly cloned project"
+SUMMARY="Initialize/Checkout a (freshly cloned) project"
 
 USAGE="[--help]"
 
@@ -9,4 +9,4 @@ if test $# -gt 0; then
 fi
 
 kdist__cd_topdir &&
-git submodule update
+git submodule update --init
