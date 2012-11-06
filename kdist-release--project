@@ -35,18 +35,32 @@ release__project () {
 	"")
 		# Easy case: no release has been done for that kernel,
 		# so it's a '1.1' one.
-		tag=$kernel_tag.1
-		last=$(release__get_parent HEAD) ;;
+		tag=$kernel_tag.1 ;;
 	*)
 		# a kernel release already exists, we have to see if
-		# the kernel release needs to be increased or if it's
-		# the build number only.
+		# the kernel release needs to be increased or only the
+		# the build number.
 		case $last in
 		${kernel_tag}*)
 			tag=$kernel_tag.$((${last##*.}+1)) ;;
 		*)
 			tag=$kernel_tag.1 ;;
 		esac
+	esac
+
+	#
+	# Create a temporary commit so kdist-log will include all
+	# staged changes too. It will fail here if it's an empty
+	# release.
+	#
+	# And release__get_parent() can be called even if we are
+	# already on a released commit.
+	#
+	git commit -q -m "Release $tag" ||
+	die "Failed to commit release"
+
+	case $last in
+	"")	last=$(release__get_parent)
 	esac
 
 	cat >$tmpfile <<EOF
@@ -79,10 +93,12 @@ No parent release was found.
 EOF
 	fi >>$tmpfile
 
-	# git-commit will trap any erros on the log, it also fails if
-	# there's nothing to commit.
-	git commit -qs --edit --file=$tmpfile ||
-	die "Failed to commit release."
+	# Do the real commit. git-commit(1) does all the sanity
+	# checkings on the log.
+	git commit -qs --amend --edit --file=$tmpfile || {
+		git reset -q --soft HEAD~1
+		die "Failed to commit release."
+	}
 
 	git__tag $tag || {
 		git reset -q --hard HEAD~1
