@@ -9,10 +9,17 @@ if test $# -gt 0; then
 	usage
 fi
 
+cleanup_on_exit () {
+	$cancel_commit && git reset --soft HEAD~1
+	rm -f $tmpfile
+}
+
+tmpfile=$(mktemp)
+cancel_commit=false
+trap cleanup_on_exit 0
+
 release__project () {
 	local branch
-	local tmpfile=$(mktemp)
-	trap "rm -f $tmpfile" 0
 
 	base=$(kdist__make_tag)
 	kernel_tag=$(git describe --exact-match --match=$base-\* 2>/dev/null) ||
@@ -58,6 +65,7 @@ release__project () {
 	#
 	git commit -q -m "Release $tag" ||
 	die "Failed to commit release"
+	cancel_commit=true
 
 	case $last in
 	"")	last=$(release__get_parent)
@@ -95,15 +103,13 @@ EOF
 
 	# Do the real commit. git-commit(1) does all the sanity
 	# checkings on the log.
-	git commit -qs --amend --edit --file=$tmpfile || {
-		git reset -q --soft HEAD~1
-		die "Failed to commit release."
-	}
+	git commit -qs --amend --edit --file=$tmpfile ||
+	die "Failed to commit release."
 
-	git__tag $tag || {
-		git reset -q --hard HEAD~1
-		die "git failed to create the tag."
-	}
+	git__tag $tag ||
+	die "Failed to create the tag, aborted."
+
+	cancel_commit=false
 }
 
 
