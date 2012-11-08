@@ -60,12 +60,18 @@ release__project () {
 	# staged changes too. It will fail here if it's an empty
 	# release.
 	#
+	# The temporary tag is for kdist-log to output the correct
+	# project range.
+	#
 	# And release__get_parent() can be called even if we are
 	# already on a released commit.
 	#
 	git commit -q -m "Release $tag" ||
-	die "Failed to commit release"
+	die "Failed to create temporary commit, aborted"
 	cancel_commit=true
+
+	git__tag $tag ||
+	die "Failed to create temporary tag '$tag', aborted."
 
 	case $last in
 	"")	last=$(release__get_parent)
@@ -98,6 +104,9 @@ EOF
 No parent release was found.
 EOF
 	fi >>$tmpfile
+
+	# Clean the temporary tag
+	git tag -d $tag
 
 	# Do the real commit. git-commit(1) does all the sanity
 	# checkings on the log.
