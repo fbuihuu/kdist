@@ -45,7 +45,7 @@ kdist__version() (
 
 	cd $(dirname $0)
 
-	if ! test -d .git; then
+	if ! test -e .git; then
 		echo $KDIST_VERSION
 		return
 	fi
