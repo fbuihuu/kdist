@@ -34,17 +34,9 @@ if test -z "$since"; then
 	since=$(release__get_parent $from) || exit
 fi
 
-# for a given module, it returns the sha1 used by the main project
-# for a specific rev.
-release__get_module_sha1 () {
-	line=$(git ls-tree $1 -- $2) &&
-	read mode type sha1 unused <<<$line &&
-	echo $sha1
-}
-
 log_kernel () {
-	f=$(release__get_module_sha1 $1 kernel) &&
-	s=$(release__get_module_sha1 $2 kernel) &&
+	f=$(module__get_sha1 $1 kernel) &&
+	s=$(module__get_sha1 $2 kernel) &&
 	kdist__cd_repository kernel &&
 	kdist whatchanged --header $f $s
 }

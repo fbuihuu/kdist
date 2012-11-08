@@ -1,0 +1,16 @@
+#! /bin/bash
+
+release__get_parent () {
+	git describe --abbrev=0 ${1:-HEAD}~1 2>/dev/null
+}
+
+module__list () {
+	git submodule foreach -q 'echo $name'
+}
+
+# Given a release, return a module sha1 used to create that release.
+module__get_sha1 () {
+	local line=$(git ls-tree $1 -- $2) &&
+	read mode type sha1 unused <<<$line &&
+	echo $sha1
+}

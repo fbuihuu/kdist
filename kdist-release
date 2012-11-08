@@ -4,10 +4,6 @@ SUMMARY="Manage kernel and project releases"
 
 USAGE="<command> [<args>]"
 
-release__get_parent () {
-	git describe --abbrev=0 ${1:-HEAD}~1 2>/dev/null
-}
-
 while
 	case $1 in
 	-*)	usage ;;
