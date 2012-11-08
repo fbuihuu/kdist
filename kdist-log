@@ -1,24 +1,29 @@
 #! /bin/bash
 
-SUMMARY="Show what changed between different kernel version"
+SUMMARY="Show what changed between releases"
 
-USAGE="[--no-pager] [-v] [--all] [<git-log options>] [branch]"
+USAGE="[-v] [--all] [--since=<since>] [<git-log opts>] [<rev>] [-- <module>]"
 
+declare -a logs
 declare -a gitopts
-all=
-pager=
+all=false
+modules=
+since=
+from=HEAD
 
 while :
 do
 	case "$1" in
-	--no-pager)
-		pager=--no-pager ;;
 	-v|--verbose)
 		verbose=yes ;;
-	--all)
-		all=yes ;;
-	-h|--help)
+	-h|--he|--hel|--help)
 		usage ;;
+	--all)
+		all=true ;;
+	--since=*)
+		since=${1#--since=} ;;
+	--)
+		break ;;
 	-*)
 		gitopts+=("$1") ;;
 	*)
@@ -28,33 +33,73 @@ do
 done
 
 case $# in
-0)	until=HEAD ;;
-1)	until=$1 ;;
-*)	usage
+0)
+	modules=project ;;
+1)
+	from=$1
+	modules=project ;;
+2|3)
+	case $1,$2 in
+	--,*)	modules=$2 ;;
+	*,--)	from=$1; modules=$3;;
+	*)	usage;;
+	esac ;;
+*)
+	usage
 esac
 
-#
-# log command assumes to be in a kernel repository (being tracked by
-# kdist or not).
-#
-kdist__cd_repository kernel || exit
 
-#
-# It should log only distro commits but also log commits if the HEAD
-# is not exactly on a tag.
-#
-until=$(git__describe --match=v\* $until) &&
-while expr $until : "v.*-[0-9]\+" >/dev/null
+kdist__cd_topdir
+
+if test -z "$since"; then
+	since=$(release__get_parent $from) ||
+	die "You can't log the very first release"
+fi
+
+if $all; then
+	modules="project $(module__list)"
+fi
+
+log_kernel () {
+	f=$(module__get_sha1 $1 kernel) &&
+	s=$(module__get_sha1 $2 kernel) &&
+	(
+		kdist__cd_repository kernel
+		kdist whatchanged --header $f $s 2>/dev/null
+	)
+}
+
+log_configs () {
+	set -o pipefail
+	git diff --submodule $2 $1 -- configs |
+	sed -e "1s/^Submodule/\*/"
+}
+
+log_kdist () {
+	set -o pipefail
+	git diff --submodule $2 $1 -- kdist |
+	sed -e "1s/^Submodule/\*/"
+}
+
+log_project () {
+	echo "* Project $since..$(git describe --always $from)"
+	git log --pretty=tformat:"  > %s" $since..$from
+}
+
+for m in $modules
 do
-	since=$(git__describe --match=v\* --abbrev=0 $until~1) ||
-	exit
+	case $(type -t log_$m) in
+	function)
+		logs+=("$(log_$m $from $since)") || exit ;;
+	*)
+		die "Unkown module '$m'"
+	esac
+done
 
-	say "Logging $since..$until"
-	git $pager log "${gitopts[@]}" --first-parent $since..$until
-
-	if test "$all" != yes; then
-		break
+for i in ${!logs[*]}
+do
+	if test -n "${logs[$i]}"; then
+		[ $i -gt 0 ] && echo
+		echo "${logs[$i]}"
 	fi
-
-	until=$since
 done

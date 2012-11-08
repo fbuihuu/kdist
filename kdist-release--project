@@ -91,9 +91,7 @@ EOF
 		cat <<EOF
 Changes since $last are as follows:
 
-$(kdist release log configs)
-$(kdist release log kdist)
-$(kdist release log kernel)
+$(kdist log --all)
 EOF
 	else
 		cat <<EOF
