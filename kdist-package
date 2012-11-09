@@ -134,12 +134,8 @@ package__show_changelog () {
 		"$(git config --get user.email)"       \
 		$uname_r
 
-	#
-	# If we get here, a release has already been made
-	# (KERNLE_VERSION_PACKAGE is defined) therefore it's safe to
-	# call kdist-log.
-	#
-	kdist log --no-pager --pretty="  + %s" --first-parent $package_tag
+	git --no-pager log --pretty="  + %s" --first-parent \
+		$(release__get_parent $package_tag)..$package_tag
 }
 
 #
