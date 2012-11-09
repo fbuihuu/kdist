@@ -73,8 +73,10 @@ release__project () {
 	git__tag $tag ||
 	die "Failed to create temporary tag '$tag', aborted."
 
+	# No parent release is not fatal, it just means that we're
+	# making the very first one.
 	case $last in
-	"")	last=$(release__get_parent)
+	"")	last=$(release__get_parent 2>/dev/null)
 	esac
 
 	cat >$tmpfile <<EOF

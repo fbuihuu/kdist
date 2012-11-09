@@ -2,7 +2,7 @@
 
 release__get_parent () {
 	git describe --match=v[[:digit:]].[[:digit:]]\*-[[:digit:]]\* \
-		--abbrev=0 ${1:-HEAD}~1 2>/dev/null
+		--abbrev=0 ${1:-HEAD}~1
 }
 
 module__list () {

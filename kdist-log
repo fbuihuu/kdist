@@ -53,7 +53,7 @@ kdist__cd_topdir
 
 if test -z "$since"; then
 	since=$(release__get_parent $from) ||
-	die "You can't log the very first release"
+	die "kdist-log failed to retrieve a parent release."
 fi
 
 if $all; then
