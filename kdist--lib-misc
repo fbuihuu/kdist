@@ -1,11 +1,16 @@
 #! /bin/bash
 
+#
 # This can be used either for project or kernel releases. In the
 # kernel case, the parent of v3.4.4-1 is v3.4.4, that is the function
 # returns a release that was not done by kdist.
+#
+release__describe () {
+	git describe --match=v[[:digit:]].[[:digit:]]\* "$@"
+}
+
 release__get_parent () {
-	git describe --match=v[[:digit:]].[[:digit:]]\* \
-		--abbrev=0 ${1:-HEAD}~1
+	release__describe --abbrev=0 ${1:-HEAD}~1
 }
 
 module__list () {
