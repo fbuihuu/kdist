@@ -1,7 +1,8 @@
 #! /bin/bash
 
 release__get_parent () {
-	git describe --abbrev=0 ${1:-HEAD}~1 2>/dev/null
+	git describe --match=v[[:digit:]].[[:digit:]]\*-[[:digit:]]\* \
+		--abbrev=0 ${1:-HEAD}~1 2>/dev/null
 }
 
 module__list () {
