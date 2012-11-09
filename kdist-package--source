@@ -2,7 +2,7 @@
 
 SUMMARY="Build source packages for the specified distribution"
 
-USAGE="[-v] [--distrib=<name>] [--release=<num>] [--with-source] [--output-dir|-o <dir>] [-r <tag>] [<pkg-mngr-opts>] [<flavour>|source|headers|firmware|tools/<name>]
+USAGE="[-v] [--distrib=<name>] [--with-source] [--output-dir|-o <dir>] [-r <tag>] [<pkg-mngr-opts>] [<flavour>|source|headers|firmware|tools/<name>]
 
    <flavour>         Package the kernel using the specified flavour
    source            Package the kernel sources
@@ -12,7 +12,6 @@ USAGE="[-v] [--distrib=<name>] [--release=<num>] [--with-source] [--output-dir|-
 
    --with-source     Build a package embedding the kernel source
    -r                Specify the kernel revision to package
-   --release         Specify the distribution release number
    --output-dir      Use <dir> to store the resulting files
    --distrib         Force the distribution target
 "
@@ -23,8 +22,6 @@ while
 	case $1 in
 	-v|--verbose)
 		verbose=yes ;;
-	--release=*)
-		release_build=${1#*=} ;;
 	--with-source)
 		no_source=0 ;;
 	-r)
