@@ -41,9 +41,9 @@ package_headers () (
 	#
 	cd $tmpdir/ && (
 		cd ${prefix:-.}
-		rm -rf {block,crypto,drivers,firmware,fs,init,ipc} &&
-		rm -rf {kernel,lib,mm,net,samples,security,sound} &&
-		rm -rf {tools,usr,virt,Documentation}
+		rm -rf block crypto drivers firmware fs init ipc
+		rm -rf kernel lib mm net samples security sound
+		rm -rf tools usr virt Documentation
 	)
 	tar -cf - ${prefix:-.}
 )
@@ -58,9 +58,9 @@ package_firmware () (
 	#
 	cd $tmpdir && (
 		cd ${prefix:-.}
-		rm -rf {block,crypto,drivers,fs,init,ipc} &&
-		rm -rf {kernel,lib,mm,net,samples,security,sound} &&
-		rm -rf {tools,usr,virt,Documentation}
+		rm -rf block crypto drivers fs init ipc
+		rm -rf kernel lib mm net samples security sound
+		rm -rf tools usr virt Documentation
 	)
 	tar -cf - ${prefix:-.}
 )
@@ -75,9 +75,9 @@ package_tools () (
 	#
 	cd $tmpdir && (
 		cd ${prefix:-.}
-		rm -rf {block,crypto,drivers,fs,firmware,init,ipc} &&
-		rm -rf {kernel,mm,net,samples,security,sound} &&
-		rm -rf {usr,virt,Documentation}
+		rm -rf block crypto drivers fs firmware init ipc
+		rm -rf kernel mm net samples security sound
+		rm -rf usr virt Documentation
 	)
 	tar -cf - ${prefix:-.}
 )
