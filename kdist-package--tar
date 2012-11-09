@@ -18,6 +18,13 @@ USAGE="[-q] [-z|-j] [--prefix=<prefix>] [--output-dir|-o <dir>] [-r <rev>] sourc
     -q               Be quiet
 "
 
+#
+# Note: Put shopt here rather than inside the subshells using the
+# extglob feature. Explanations are given by:
+# http://www.mail-archive.com/bug-bash@gnu.org/msg10613.html
+#
+shopt -s extglob
+
 extract_source () {
 	git archive --format=tar --prefix=$prefix $rev | tar -C $1 -xf - &&
 	#
@@ -43,7 +50,7 @@ package_headers () (
 		cd ${prefix:-.}
 		rm -rf block crypto drivers firmware fs init ipc
 		rm -rf kernel lib mm net samples security sound
-		rm -rf tools usr virt Documentation
+		rm -rf tools/!(include) usr virt Documentation
 	)
 	tar -cf - ${prefix:-.}
 )
