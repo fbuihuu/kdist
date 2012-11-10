@@ -32,8 +32,15 @@ do
 done
 
 case $1 in
-""|source|headers|firmware|tools/*) ;;
-*)	usage
+source|headers|firmware|tools/*)
+	;;
+"")
+	# Try to see (at least) if the kernel has been built once. We
+	# can't see if it's up to date though.
+	test -f $(kdist__get_repository kernel)/vmlinux ||
+	die "You must compile the kernel first." ;;
+*)
+	usage
 esac
 
 package__init
