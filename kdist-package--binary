@@ -50,4 +50,7 @@ rpm)	source $libexecdir/kdist-package--binary---rpm ;;
 esac ||
 exit
 
-package__main $1
+package__main $1 || {
+	test "$verbose" =! yes &&
+	say "Failed to build '$package_type' package, try adding '-v' option."
+}

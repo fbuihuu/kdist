@@ -261,13 +261,7 @@ package__main () {
 		die "No kernel config file exists for '$target'."
 	esac &&
 
-	package_flavour $configs || {
-		if test "$verbose" != yes; then
-			warn "Failed to build '$package_type' package," \
-			     "try with '-v' option."
-		fi
-		exit 1
-	}
+	package_flavour $configs
 }
 
 

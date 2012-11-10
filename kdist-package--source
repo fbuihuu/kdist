@@ -51,4 +51,7 @@ exit
 if test $# -ne 1; then
 	usage
 fi
-package__main $1
+package__main $1  || {
+	test "$verbose" != yes &&
+	die "Failed to build '$package_type' source package, try with '-v' option."
+}
