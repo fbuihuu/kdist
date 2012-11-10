@@ -191,7 +191,7 @@ while
 		do_self_tests
 		exit ;;
 	-*)
-		usage ;;
+		kdist__usage ;;
 	*)
 		break
 	esac
@@ -202,7 +202,7 @@ done
 case $# in
 0)	pattern='*' ;;
 1)	pattern=$1  ;;
-*)	usage
+*)	kdist__usage
 esac
 
 

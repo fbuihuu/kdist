@@ -15,7 +15,7 @@ while
 	--origin=*)	origin=${1#--origin=} ;;
 	--type=*)	resolve_opts="--type=${1#--type=}" ;;
 	-n|--dry-run)	dry_run=yes ;;
-	-*)		usage ;;
+	-*)		kdist__usage ;;
 	*)		break
 	esac
 do

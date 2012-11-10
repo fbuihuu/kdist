@@ -20,7 +20,7 @@ do
 	--raw)
 		raw=yes ;;
 	-*)
-		usage ;;
+		kdist__usage ;;
 	*)
 		break
 	esac
@@ -57,7 +57,7 @@ case $# in
 	test -e "$one" || one=$(config__resolve_files --fullpath "$1") || exit
 	;;
 *)
-	usage
+	kdist__usage
 esac
 
 if test -z "$one"; then

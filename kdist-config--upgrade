@@ -22,7 +22,7 @@ while
 	case $1 in
 	--template=*)	template=$(readlink -f ${1#--template=}) ;;
 	--from=*)	from=${1#--from=} ;;
-	-*)		usage ;;
+	-*)		kdist__usage ;;
 	*)		break
 	esac
 do
@@ -31,7 +31,7 @@ done
 
 case $# in
 1)	;;
-*)	usage
+*)	kdist__usage
 esac
 
 type=$1

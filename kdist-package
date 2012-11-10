@@ -267,8 +267,8 @@ package__main () {
 
 while
 	case $1 in
-	-*)		usage ;;
-	*)		break
+	-*)	kdist__usage ;;
+	*)	break
 	esac
 do
 	shift

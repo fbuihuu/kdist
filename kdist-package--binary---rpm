@@ -98,7 +98,7 @@ while
 	--with=*|--without=*)
 		rpm__add_bconds $1 ;;
 	-*)
-		usage ;;
+		kdist__usage ;;
 	*)
 		break
 	esac
@@ -116,7 +116,7 @@ firmware|headers|source|tools/*)
 	#
 	local_build_release=yes ;;
 *)
-	usage
+	kdist__usage
 esac
 
 rpm__init_bin

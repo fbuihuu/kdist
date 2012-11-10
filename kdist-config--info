@@ -6,7 +6,7 @@ USAGE="info [<path>]"
 
 while
 	case $1 in
-	-*)	usage ;;
+	-*)	kdist__usage ;;
 	*)	break
 	esac
 do
@@ -16,7 +16,7 @@ done
 case $# in
 0)	path=.config ;;
 1)	path=$(readlink -f $1) ;;
-*)	usage
+*)	kdist__usage
 esac
 
 if ! test -f "$path"; then

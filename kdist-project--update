@@ -5,7 +5,7 @@ SUMMARY="Initialize/Checkout a (freshly cloned) project"
 USAGE="[--help]"
 
 if test $# -gt 0; then
-	usage
+	kdist__usage
 fi
 
 kdist__cd_topdir &&

@@ -11,7 +11,7 @@ while
 	case $1 in
 	--type=*)	type_opt=$1 ;;
 	--fullpath)	fullpath_opt=$1 ;;
-	-*)		usage ;;
+	-*)		kdist__usage ;;
 	*)		break
 	esac
 do
@@ -19,7 +19,7 @@ do
 done
 
 if test $# -ne 1; then
-	usage
+	kdist__usage
 fi
 
 # check for the presence of a kernel repository is done later since

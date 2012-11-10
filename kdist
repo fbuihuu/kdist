@@ -51,7 +51,7 @@ while
 		echo kdist version $(kdist__version)
 		exit ;;
 	*,-*|0,*)
-		usage
+		kdist__usage
 		exit 1 ;;
 	*)
 		break;;

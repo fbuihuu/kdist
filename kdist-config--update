@@ -20,7 +20,7 @@ while
 	--template=*)	template=${1#--template=} ;;
 	-v|--verbose)	verbose=yes ;;
 	-n|--dry-run)	dry_run=yes ;;
-	-*)		usage ;;
+	-*)		kdist__usage ;;
 	*)		break
 	esac
 do

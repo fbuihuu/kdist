@@ -40,7 +40,7 @@ source|headers|firmware|tools/*)
 	test -f $(kdist__get_repository kernel)/vmlinux ||
 	die "You must compile the kernel first." ;;
 *)
-	usage
+	kdist__usage
 esac
 
 package__init

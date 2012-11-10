@@ -14,7 +14,7 @@ do
 	--kernel=*)	kernel_repo=${1#--kernel=} ;;
 	--configs=*)	config_repo=${1#--configs=} ;;
 	--kdist=*)	kdist_repo=${1#--kdist=} ;;
-	-*)		usage ;;
+	-*)		kdist__usage ;;
 	*)		break
 	esac
 	shift
@@ -22,7 +22,7 @@ done
 
 case $# in
 1)	destination=$1 ;;
-*)	usage
+*)	kdist__usage
 esac
 
 # Prompt if a repo is missing

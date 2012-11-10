@@ -17,7 +17,7 @@ do
 	-v|--verbose)
 		verbose=yes ;;
 	-h|--he|--hel|--help)
-		usage ;;
+		kdist__usage ;;
 	--all)
 		all=true ;;
 	--since=*)
@@ -42,10 +42,10 @@ case $# in
 	case $1,$2 in
 	--,*)	modules=$2 ;;
 	*,--)	from=$1; modules=$3;;
-	*)	usage;;
+	*)	kdist__usage;;
 	esac ;;
 *)
-	usage
+	kdist__usage
 esac
 
 

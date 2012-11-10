@@ -12,7 +12,7 @@ while
 	-v)		verbose=yes ;;
 	--strict)	strict=yes ;;
 	--verify)	verify=yes ;;
-	-*)		usage ;;
+	-*)		kdist__usage ;;
 	*)		break
 	esac
 do
@@ -20,7 +20,7 @@ do
 done
 
 if test $# -ne 1; then
-	usage
+	kdist__usage
 fi
 
 if ! test -f "$1"; then

@@ -8,7 +8,7 @@ while :
 do
 	case "$1" in
 	-*)
-		usage ;;
+		kdist__usage ;;
 	*)
 		break
 	esac

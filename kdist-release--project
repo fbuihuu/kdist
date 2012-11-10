@@ -6,7 +6,7 @@ USAGE="[--help]"
 
 
 if test $# -gt 0; then
-	usage
+	kdist__usage
 fi
 
 cleanup_on_exit () {

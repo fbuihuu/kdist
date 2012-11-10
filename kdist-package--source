@@ -49,7 +49,7 @@ esac ||
 exit
 
 if test $# -ne 1; then
-	usage
+	kdist__usage
 fi
 package__main $1  || {
 	test "$verbose" != yes &&

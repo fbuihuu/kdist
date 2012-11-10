@@ -6,7 +6,7 @@ USAGE="<commands> [<args>]"
 
 while
 	case $1 in
-	-*)	usage ;;
+	-*)	kdist__usage ;;
 	*)	break
 	esac
 do

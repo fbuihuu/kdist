@@ -222,7 +222,7 @@ while
 	--spec=*)
 		rpm_specfile=${1#*=} ;;
 	-*)
-		usage ;;
+		kdist__usage ;;
 	*)
 		break
 	esac
