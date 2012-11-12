@@ -109,8 +109,8 @@ kdist__config_version () {
 # Kdist repository management
 #
 kdist__check_project () {
-	[ -e "$1"/configs/.git ] && [ -e "$1"/kernel/.git ] &&
-	[ -e "$1"/kdist/.git ] && [ -d "$1"/.git ] && [ -f "$1"/.gitmodules ]
+	[ -d "$1"/configs ] && [ -d "$1"/kernel ] && [ -d "$1"/kdist ] && \
+	[ -d "$1"/.git ] && [ -f "$1"/.gitmodules ]
 }
 
 kdist__cd_topdir () {
