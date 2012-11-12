@@ -19,29 +19,28 @@ cancel_commit=false
 trap cleanup_on_exit 0
 
 release__project () {
-	base=$(kdist__make_tag)
-	kernel_tag=$(git describe --exact-match --match=$base-\* 2>/dev/null) ||
-	die "kernel HEAD is not on a released commit."
+	kdist__cd_repository kernel &&
+	kdist__setup_kernel_version ||
+	exit
+
+	git__check_clean_work_tree ||
+	die "You must have a clean kernel working tree."
+
+	ktag=$(git describe --exact-match --match=$(kdist__make_tag)-\*) ||
+	die "Your kernel HEAD is not on a tagged/released commit."
 
 	kdist__cd_topdir
 
 	# Figure out the new release tag.
-	last=$(kdist release list -n1 $base-\*)
+	last=$(kdist release list -n1 $ktag\*)
 	case $last in
 	"")
-		# Easy case: no release has been done for that kernel,
-		# so it's a '1.1' one.
-		tag=$kernel_tag.1 ;;
+		# Easy case: no release has been done for that kernel.
+		tag=$ktag.1 ;;
 	*)
-		# a kernel release already exists, we have to see if
-		# the kernel release needs to be increased or only the
-		# the build number.
-		case $last in
-		${kernel_tag}*)
-			tag=$kernel_tag.$((${last##*.}+1)) ;;
-		*)
-			tag=$kernel_tag.1 ;;
-		esac
+		# A project release already exists for that kernel
+		# release: increase the release number.
+		tag=$ktag.$((${last##*.}+1)) ;;
 	esac
 
 	#
@@ -110,12 +109,5 @@ EOF
 	cancel_commit=false
 }
 
-
-kdist__cd_repository kernel &&
-kdist__setup_kernel_version ||
-exit
-
-git__check_clean_work_tree ||
-die "You must have a clean kernel working tree."
 
 release__project "$@"
