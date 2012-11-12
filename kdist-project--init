@@ -53,7 +53,18 @@ trap cleanup_on_failure 0
 #
 mkdir $destination &&
 cd $destination &&
-git init -q &&
+git init -q ||
+exit
+
+# Create the initial commit: for now it contains only an empty
+# .gitignore file. An initial commit is needed so that the repo has at
+# least a defined HEAD and branch otherwise most of the log commands
+# won't work at all.
+>.gitignore &&
+git add .gitignore &&
+git commit -s -m "Project creation" ||
+die "Failed to create initial commit."
+
 git submodule add $kdist_repo kdist &&
 git submodule add $config_repo configs &&
 git submodule add $kernel_repo kernel ||
