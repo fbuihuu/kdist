@@ -19,22 +19,11 @@ cancel_commit=false
 trap cleanup_on_exit 0
 
 release__project () {
-	local branch
-
 	base=$(kdist__make_tag)
 	kernel_tag=$(git describe --exact-match --match=$base-\* 2>/dev/null) ||
 	die "kernel HEAD is not on a released commit."
 
 	kdist__cd_topdir
-
-	#
-	# check that the current branch is the one used to track this
-	# specific kernel version. If not, just exit and ask to the
-	# user to resolve this.
-	#
-	branch=$(git symbolic-ref -q HEAD)
-	[[ $kernel_tag = v${branch##*/}* ]] ||
-	die "Your current branch is not the one used to track $base kernel serie."
 
 	# Figure out the new release tag.
 	last=$(kdist release list -n1 $base-\*)
