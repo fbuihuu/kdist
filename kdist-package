@@ -149,7 +149,7 @@ package_archive=
 package_description=
 package_tag=
 release_source=
-release_build=0
+release_build=
 local_build_release=
 src_uname_r=
 
@@ -159,37 +159,47 @@ package__main () {
 
 	kdist__cd_repository kernel &&
 	kdist__setup_kernel_version $package_tag &&
-	scmversion=$(git__scmversion $package_tag) ||
+	package_version=$KERNEL_VERSION_BASE ||
 	exit
 
-	package_version=$KERNEL_VERSION_BASE
-
-	#
-	# When no target is specified, see if we can find the flavour
-	# from the .config
-	#
 	case $target in
-	'')
-		test $release_build -eq 0 ||
-			die "You must specify a target with --release."
-		test -f .config ||
-			die ".config is missing."
-
-		flavour=$(config__read_flavour .config)
-		package_name=kernel${flavour:+-$flavour} ;;
 	tools/*)
 		package_name=${target#tools/} ;;
+	'')
+		#
+		# Using the current .config means that's we're
+		# packaging a non official release. In that case
+		# force 'release_build' to 0.
+		#
+		release_build=0
+
+		test -f .config ||
+		die ".config is missing."
+		flavour=$(config__read_flavour .config)
+		package_name=kernel${flavour:+-$flavour} ;;
 	*)
 		package_name=kernel-$target
 	esac
 
 	#
-	# When releasing, we request the current head to be at a
-	# tagged commit.
+	# If the whole project is clean and pointing on a release
+	# then use the tag to find out the release_build number.
 	#
-	if test $scmversion && test $release_build -ne 0; then
-		die "--release wants a tagged commit."
-	fi
+	t=$(kdist__cd_topdir && \
+	    release__describe --dirty --exact-match 2>/dev/null)
+
+	case $t in
+	*-dirty)
+		say -n "Project index is not clean" ;;&
+	"")
+		say -n "Packaging non released project" ;;&
+	""|*-dirty)
+		say ", forcing build release number to 0."
+		release_build=0
+		scmversion=$(git__scmversion $package_tag) ;;
+	*)
+		release_build=${t##*.}
+	esac
 
 	#
 	# If we package a vanilla kernel, we don't want to include the
@@ -218,8 +228,7 @@ package__main () {
 
 	case $target in
 	source)
-		test $release_build -ne 0 &&
-			die "'source' target has no build release number." ;;
+		;;
 	*)
 		# see if the caller want to append a local build release number
 		if test "$local_build_release" = yes; then
@@ -241,18 +250,10 @@ package__main () {
 	esac
 
 	# Generate the list of the config files to use
-	case $target,$release_build in
-	'',0|'',0.*)
-		configs=".config" ;;
-	*,[^0])
-		# we also want clean config and packaging repositories.
-		(kdist__cd_repository configs && git__check_clean_work_tree) ||
-		die "You have local changes in your 'configs' repository."
-		(kdist__cd_repository packaging && git__check_clean_work_tree) ||
-		die "You have local changes in your 'packaging' repository."
-
-		;& # fall-through
-	*,*)
+	case $target in
+	'')
+		configs=.config ;;
+	*)
 		config_info__load $target
 		package_description=$(config_info__get_description)
 
