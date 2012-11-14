@@ -60,14 +60,12 @@ if $all; then
 	modules="project $(module__list)"
 fi
 
-log_kernel () {
+log_kernel () (
 	f=$(module__get_sha1 $1 kernel) &&
 	s=$(module__get_sha1 $2 kernel) &&
-	(
-		kdist__cd_repository kernel
-		kdist whatchanged --header $f $s 2>/dev/null
-	)
-}
+	kdist__cd_repository kernel &&
+	kdist whatchanged --header $f $s 2>/dev/null
+)
 
 log_configs () {
 	set -o pipefail
