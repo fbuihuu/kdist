@@ -23,3 +23,18 @@ module__get_sha1 () {
 	read mode type sha1 unused <<<$line &&
 	echo $sha1
 }
+
+#
+# Returns in lower case the name of the Linux OS distribution name. It
+# assumes that /etc/os-release is present.
+#
+# Now, lsb-release has been obsoleted by os-release (specified
+# by the freedesktop standard).
+#
+runtime__distribution () {
+	if test -f /etc/os-release; then
+		(source /etc/os-release && echo ${ID,,})
+		return
+	fi
+	warn "/etc/os-release is missing."
+}
