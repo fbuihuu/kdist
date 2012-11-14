@@ -10,15 +10,15 @@ package_type=
 package_distrib=
 
 package__init () {
-	# This should be auto-detected
-	: ${package_distrib:=Mandriva}
+	test -z "$package_distrib" &&
+	package_distrib=$(runtime__distribution)
 
-	# use lowercase.
-	package_distrib=${package_distrib,,}
+	test -z "$package_distrib" &&
+	die "Unknown distribution, try to pass '--distrib' option."
 
 	case $package_distrib in
 	mandriva)	package_type=rpm ;;
-	*)		die "'${package_distrib%%/*}' is currently not supported."
+	*)	die "'${package_distrib%%/*}' distribution is not supported."
 	esac
 
 	case $package_distrib in
