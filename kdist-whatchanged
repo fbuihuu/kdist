@@ -2,13 +2,12 @@
 
 SUMMARY="Show what happened between two releases"
 
-USAGE="[-v] [--debug] [--header] [--stat] <new> [<old>]"
-
+USAGE="[-v] [--self-tests] [--header] [--stat] <old> [<new> [<upstream> [[<old-limit>]]]]"
 
 verbose=no
 stat=no
 diff=no
-debug=no
+self_tests=no
 header=no
 
 while :
@@ -20,8 +19,8 @@ do
 		header=yes ;;
 	--verbose|-v)
 		verbose=yes ;;
-	--debug)
-		debug=yes ;;
+	--self-tests)
+		self_tests=yes ;;
 	-*)
 		kdist__usage ;;
 	*)
@@ -31,19 +30,15 @@ do
 done
 
 case $# in
-1|2)
-	dist_b=$1
-	dist_a=$2
+1|2|3|4)
+	dist_a=$1
+	dist_b=${2:-HEAD}
+	base_a=$4
+	base_b=$3
 	;;
 *)
 	kdist__usage
 esac
-
-#
-# This script only work for the kernel, because the way it retrieves
-# the bases. Therefore be sure it's called in a kernel repository.
-#
-kdist__cd_repository kernel || exit
 
 #
 # diff between two distros
@@ -121,14 +116,34 @@ cleanup_on_exit () {
 trap cleanup_on_exit 0
 
 
-base_a=$(git__describe --match="*-[1-9]*" $dist_a 2>/dev/null)
-base_b=$(git__describe --match="*-[1-9]*" $dist_b 2>/dev/null)
-base_a=${base_a%-*}
-base_b=${base_b%-*}
+dist_a=$(git rev-parse --verify $dist_a^{}) &&
+dist_b=$(git rev-parse --verify $dist_b^{}) &&
+merge_base=$(git merge-base $dist_a $dist_b) ||
+exit
 
-echo >&2 "Collecting distribution info, this may take a while..."
+case $merge_base in
+$dist_a)
+	#
+	# This (common) case could be covered by the generic one but
+	# we separate it to make it faster.
+	#
+	# ... --*--A--*--*--B
+	#
+	# "Added" patches (even reverts count as added).
+	#
+	git cherry -v $dist_a $dist_b ${base_b:-$dist_a} >$cherry_a ||
+	die "git cherry failed"
 
-if test $base_a && test $base_b; then
+	grep "^+" $cherry_a | cut -f2- -d' ' >$new_list
+	new_count=$(wc -l <$new_list)
+	;;
+*)
+	#
+	# General case which also includes "Mainlined" patches if
+	# upstream-limit has been passed. It usually takes longer.
+	#
+	echo >&2 "Scanning commits, this may take a while..."
+
 	#
 	# Collect output of 'git-cherry n+1 n base(n)':
 	#   '+' shows dropped patches (unknown reason: inexact patches...)
@@ -148,12 +163,13 @@ if test $base_a && test $base_b; then
 	# which is not sensitive to subject changes (since it uses
 	# patch-id).
 	#
-	# Note: For 'kept' patchs, we use the upstream namespace
+	# Note: For 'kept' patches, we use the upstream namespace
 	# (sha1, subject...)
 	#
+	[ $base_b ] &&
+	git cherry -v $base_b $dist_a $base_a >$cherry_c
 	git cherry -v $dist_b $dist_a $base_a >$cherry_a &&
-	git cherry -v $dist_a $dist_b $base_b >$cherry_b &&
-	git cherry -v $base_b $dist_a $base_a >$cherry_c ||
+	git cherry -v $dist_a $dist_b $base_b >$cherry_b ||
 	die "git cherry failed"
 
 	grep "^+" $cherry_a | cut -f2- -d' ' >$dropped_list
@@ -161,13 +177,13 @@ if test $base_a && test $base_b; then
 	grep "^-" $cherry_b | cut -f2- -d' ' >$kept_list
 	grep "^-" $cherry_c | cut -f2- -d' ' >$merged_list
 
-	new_count=$(wc -l $new_list | cut -f1 -d' ')
-	kept_count=$(wc -l $kept_list | cut -f1 -d' ')
-	merged_count=$(wc -l $merged_list | cut -f1 -d' ')
-	dropped_count=$(wc -l $dropped_list | cut -f1 -d' ')
+	new_count=$(wc -l <$new_list)
+	kept_count=$(wc -l <$kept_list)
+	merged_count=$(wc -l <$merged_list)
+	dropped_count=$(wc -l <$dropped_list)
 
 	# sanity checkings
-	if test $debug = yes
+	if test $self_tests = yes
 	then
 		declare -i total_a total_b
 
@@ -195,19 +211,6 @@ if test $base_a && test $base_b; then
 			bug "commit counts mismatch betweem the 2 distros."
 		fi
 	fi
-else
-	#
-	# If dist_b is not a release, then we do a plain git-cherry
-	# and there're only 'mainlined' and 'dropped' commits.
-	#
-	git cherry -v $dist_b $dist_a $base_a >$cherry_a ||
-	die "git cherry failed"
-
-	grep "^+" $cherry_a | cut -f2- -d' ' >$dropped_list
-	grep "^-" $cherry_a | cut -f2- -d' ' >$merged_list
-
-	merged_count=$(wc -l $merged_list | cut -f1 -d' ')
-	dropped_count=$(wc -l $dropped_list | cut -f1 -d' ')
-fi
+esac
 
 show_lists

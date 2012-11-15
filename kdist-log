@@ -62,9 +62,17 @@ fi
 
 log_kernel () (
 	f=$(module__get_sha1 $1 kernel) &&
-	s=$(module__get_sha1 $2 kernel) &&
-	kdist__cd_repository kernel &&
-	kdist whatchanged --header $f $s 2>/dev/null
+	s=$(module__get_sha1 $2 kernel) ||
+	return
+
+	kdist__cd_repository kernel
+	tag_f=$(release__describe $f) &&
+	tag_s=$(release__describe $s) &&
+	#
+	# Specify unconditionnaly 'upstream' and 'limit'. They will be
+	# ignored if they're ancestors of merge-base(f,s).
+	#
+	kdist whatchanged --header $s $f ${tag_f%-*} ${tag_s%-*} 2>/dev/null
 )
 
 log_configs () {
