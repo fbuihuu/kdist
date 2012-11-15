@@ -2,13 +2,14 @@
 
 SUMMARY="Show what happened between two releases"
 
-USAGE="[-v] [--self-tests] [--header] [--stat] <old> [<new> [<upstream> [[<old-limit>]]]]"
+USAGE="[-v] [--self-tests] [--header] [--stat] [--no-kept] <old> [<new> [<upstream> [[<old-limit>]]]]"
 
 verbose=no
 stat=no
 diff=no
 self_tests=no
 header=no
+no_kept=no
 
 while :
 do
@@ -21,6 +22,8 @@ do
 		verbose=yes ;;
 	--self-tests)
 		self_tests=yes ;;
+	--no-kept)
+		no_kept=yes ;;
 	-*)
 		kdist__usage ;;
 	*)
@@ -85,7 +88,7 @@ show_lists () {
 		echo "${prefix}+ New: ($new_count)"
 		show_one_list $new_list '>'
 	fi
-	if test $kept_count -gt 0; then
+	if test $kept_count -gt 0 && test $no_kept != yes; then
 		echo "${prefix}+ Kept: ($kept_count)"
 		show_one_list $kept_list '>'
 	fi
