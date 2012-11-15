@@ -36,11 +36,13 @@ release__project () {
 	case $last in
 	"")
 		# Easy case: no release has been done for that kernel.
-		tag=$ktag.1 ;;
+		tag=$ktag.1
+		kept_opt= ;;
 	*)
 		# A project release already exists for that kernel
 		# release: increase the release number.
-		tag=$ktag.$((${last##*.}+1)) ;;
+		tag=$ktag.$((${last##*.}+1))
+		kept_opt=--no-kept ;;
 	esac
 
 	#
@@ -87,7 +89,7 @@ EOF
 		cat <<EOF
 Changes since $last are as follows:
 
-$(kdist log --all)
+$(kdist log --all $kept_opt)
 EOF
 	else
 		cat <<EOF
