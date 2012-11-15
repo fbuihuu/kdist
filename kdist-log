@@ -9,7 +9,7 @@ declare -a gitopts
 all=false
 modules=
 since=
-from=HEAD
+until=HEAD
 
 while :
 do
@@ -36,12 +36,12 @@ case $# in
 0)
 	modules=project ;;
 1)
-	from=$1
+	until=$1
 	modules=project ;;
 2|3)
 	case $1,$2 in
 	--,*)	modules=$2 ;;
-	*,--)	from=$1; modules=$3;;
+	*,--)	until=$1; modules=$3;;
 	*)	kdist__usage;;
 	esac ;;
 *)
@@ -52,7 +52,7 @@ esac
 kdist__cd_topdir
 
 if test -z "$since"; then
-	since=$(release__get_parent $from) ||
+	since=$(release__get_parent $until) ||
 	die "kdist-log failed to retrieve a parent release."
 fi
 
@@ -61,42 +61,42 @@ if $all; then
 fi
 
 log_kernel () (
-	f=$(module__get_sha1 $1 kernel) &&
-	s=$(module__get_sha1 $2 kernel) ||
+	u=$(module__get_sha1 $until kernel) &&
+	s=$(module__get_sha1 $since kernel) ||
 	return
 
 	kdist__cd_repository kernel
-	tag_f=$(release__describe $f) &&
+	tag_u=$(release__describe $u) &&
 	tag_s=$(release__describe $s) &&
 	#
 	# Specify unconditionnaly 'upstream' and 'limit'. They will be
-	# ignored if they're ancestors of merge-base(f,s).
+	# ignored if they're ancestors of merge-base(u,s).
 	#
-	kdist whatchanged --header $s $f ${tag_f%-*} ${tag_s%-*} 2>/dev/null
+	kdist whatchanged --header $s $u ${tag_u%-*} ${tag_s%-*} 2>/dev/null
 )
 
 log_configs () {
 	set -o pipefail
-	git diff --submodule $2 $1 -- configs |
+	git diff --submodule $since $until -- configs |
 	sed -e "1s/^Submodule/\*/"
 }
 
 log_kdist () {
 	set -o pipefail
-	git diff --submodule $2 $1 -- kdist |
+	git diff --submodule $since $until -- kdist |
 	sed -e "1s/^Submodule/\*/"
 }
 
 log_project () {
-	echo "* Project $since..$(git describe --always $from)"
-	git log --pretty=tformat:"  > %s" $since..$from
+	echo "* Project $since..$(git describe --always $until)"
+	git log --pretty=tformat:"  > %s" $since..$until
 }
 
 for m in $modules
 do
 	case $(type -t log_$m) in
 	function)
-		logs+=("$(log_$m $from $since)") || exit ;;
+		logs+=("$(log_$m)") || exit ;;
 	*)
 		die "Unkown module '$m'"
 	esac
