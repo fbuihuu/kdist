@@ -12,13 +12,16 @@ Options:
   --raw   show raw diff instead
 "
 
+sorter=sort
+
 while :
 do
 	case "$1" in
 	-u)
 		unified=yes ;;
 	--raw)
-		raw=yes ;;
+		raw=yes
+		sorter=cat ;;
 	-*)
 		kdist__usage ;;
 	*)
@@ -127,22 +130,24 @@ print_one_change () {
 #
 # For each key in one diff with same key in two
 #
-for k in ${!hash_one[*]}
-do
-	old=${hash_one[$k]}
-	new=${hash_two[$k]}
+{
+	for k in ${!hash_one[*]}
+	do
+		old=${hash_one[$k]}
+		new=${hash_two[$k]}
 
-	if test "$new" != "$old"; then
-		print_one_change $k "$old" "$new"
-	fi
+		if test "$new" != "$old"; then
+			print_one_change $k "$old" "$new"
+		fi
 
-	unset "hash_two[$k]"
-done
+		unset "hash_two[$k]"
+	done
 
-#
-# All keys left in two are new stuff
-#
-for k in ${!hash_two[*]}
-do
-	print_one_change $k "" ${hash_two[$k]}
-done
+	#
+	# All keys left in two are new stuff
+	#
+	for k in ${!hash_two[*]}
+	do
+		print_one_change $k "" ${hash_two[$k]}
+	done
+} | $sorter
