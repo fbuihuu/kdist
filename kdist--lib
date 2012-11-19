@@ -50,15 +50,8 @@ kdist__version() (
 		return
 	fi
 
-	version=$(git describe --match "v[0-9]*" --abbrev=4 HEAD 2>/dev/null) || {
-		echo $KDIST_VERSION
-		return
-	}
-	git update-index -q --refresh 2>/dev/null
-	test -z "$(git diff-index --name-only HEAD --)" || {
-		version+=-dirty
-	}
-	echo $version
+	git describe --dirty --match "v[0-9]*" --abbrev=4 2>/dev/null ||
+	echo $KDIST_VERSION
 )
 
 kdist__run_handler () {
