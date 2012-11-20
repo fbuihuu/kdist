@@ -230,8 +230,8 @@ tmpdir=$(mktemp -d)
 #
 # generate the package
 #
-set -o pipefail
 
+# pipe fail is set by default.
 { package_$1 | $zip; }>$tar || {
 	die "Failed to generate the archive."
 }

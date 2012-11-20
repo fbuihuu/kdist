@@ -82,13 +82,11 @@ log_kernel () (
 )
 
 log_configs () {
-	set -o pipefail
 	git diff --submodule $since $until -- configs |
 	sed -e "1s/^Submodule/\*/"
 }
 
 log_kdist () {
-	set -o pipefail
 	git diff --submodule $since $until -- kdist |
 	sed -e "1s/^Submodule/\*/"
 }
