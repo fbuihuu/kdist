@@ -1,6 +1,6 @@
 #! /bin/bash
 
-USAGE="[--version] <command> [<args>]"
+USAGE="[--version] [--no-pager] <command> [<args>]"
 
 #
 # By default we want pipefail shell's option to be set. Subshells that
@@ -58,6 +58,8 @@ while
 	*,--version)
 		echo kdist version $(kdist__version)
 		exit ;;
+	*,--no-pager)
+		use_pager=no ;;
 	*,-*|0,*)
 		kdist__usage
 		exit 1 ;;

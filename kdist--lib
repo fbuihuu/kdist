@@ -60,14 +60,26 @@ kdist__run_handler () {
 
 	test -r $path ||
 	die "'${kdist_subcommand:-$kdist_command}' command not found."
-	source $path "$@"
+
+	case $kdist_command,$kdist_subcommand in
+	log,*|whatchanged,*)	: ${use_pager:=yes} ;;
+	config,diff)		: ${use_pager:=yes} ;;
+	release,list)		: ${use_pager:=yes} ;;
+	esac
+
+	case $use_pager in
+	yes)
+		# pipefail is set by default
+		source $path "$@" | kdist__pager ;;
+	*)
+		source $path "$@"
+	esac
 }
 
 kdist__pager() {
 	if test -t 1
 	then
-		: ${LESS=-FRSXi}
-		export LESS
+		export LESS=${LESS--FRSXi}
 		${KDIST_PAGER:-${PAGER:-less}} "$@"
 	else
 		cat "$@"
