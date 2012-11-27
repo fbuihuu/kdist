@@ -159,9 +159,12 @@ declare -A kernel_tag_map
 
 __to_kern_tag () {
 	local ktag
+
+	kdist__cd_repository kernel
+
 	#
 	# First try with current HEAD: if the closest revision is the
-	# same as the config one then just use HEAD
+	# same as the config one then just use the description of HEAD.
 	#
 	ktag=$(git describe HEAD) &&
 	case $ktag in
