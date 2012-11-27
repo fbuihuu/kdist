@@ -203,6 +203,9 @@ fi
 case $rev in
 HEAD|"")
 	rev=$(git describe --tags --abbrev=4 HEAD) ;;
+*)
+	git rev-parse -q --verify $rev >/dev/null ||
+	die "Invalid revision '$rev'"
 esac
 
 case $output_directory in
