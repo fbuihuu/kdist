@@ -106,7 +106,7 @@ package_devel () (
 
 suffix=tar
 zip=cat
-rev=
+rev=HEAD
 tar=
 quiet=
 
@@ -201,7 +201,7 @@ fi
 # Setup the revision
 #
 case $rev in
-HEAD|"")
+HEAD)
 	rev=$(git describe --tags --abbrev=4 HEAD) ;;
 *)
 	git rev-parse -q --verify $rev >/dev/null ||
