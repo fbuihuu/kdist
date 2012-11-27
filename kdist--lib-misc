@@ -24,6 +24,12 @@ module__get_sha1 () {
 	echo $sha1
 }
 
+module__get_desc () (
+	sha1=$(module__get_sha1 $1 $2) &&
+	kdist__cd_repository $2 &&
+	git describe --always --match "v[0-9]*" --abbrev=4 $sha1
+)
+
 #
 # Returns in lower case the name of the Linux OS distribution name. It
 # assumes that /etc/os-release is present.
