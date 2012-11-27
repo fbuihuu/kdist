@@ -87,8 +87,12 @@ log_configs () {
 }
 
 log_kdist () {
+	tag_u=$(module__get_desc $until kdist) &&
+	tag_s=$(module__get_desc $since kdist) ||
+	return
+
 	git diff --submodule $since $until -- kdist |
-	sed -e "1s/^Submodule/\*/"
+	sed -e "1s/^Submodule.*/* kdist $tag_s..$tag_u/"
 }
 
 log_project () {
