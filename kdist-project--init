@@ -76,7 +76,7 @@ exit
 # won't work at all.
 >.gitignore &&
 git add .gitignore &&
-git commit -s -m "Project creation" ||
+git commit -q -s -m "Project creation" ||
 die "Failed to create initial commit."
 
 git submodule add ${repositories[kdist]} kdist &&
