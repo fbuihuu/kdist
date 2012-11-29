@@ -70,7 +70,7 @@ Filter=
 #     Filter      [Optional]
 EOF
 	# Ask to the user to fill the template...
-	${VISUAL:-${EDITOR:-vi}} $flavour.info &&
+	kdist__editor $flavour.info &&
 	# and check the content.
 	sed -i -e '/^#/d' $flavour.info &&
 	config_info__load $flavour &&
