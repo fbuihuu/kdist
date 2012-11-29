@@ -69,14 +69,17 @@ Filter=
 #     Type        [Optional]
 #     Filter      [Optional]
 EOF
-	# Ask to the user to fill the template...
+	#
+	# Ask to the user to fill the template, and
+	# check the content.
+	#
 	kdist__editor $flavour.info &&
-	# and check the content.
 	sed -i -e '/^#/d' $flavour.info &&
 	config_info__load $flavour &&
-	git add $flavour.info &&
-	trap "git rm -f $flavour.info" 0 ||
+	git add $flavour.info ||
 	exit
+
+	trap "git rm -f $flavour.info" 0
 fi
 
 dst+=$(kdist__config_version $KERNEL_VERSION_BASE)/
