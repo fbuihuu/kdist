@@ -2,18 +2,20 @@
 
 SUMMARY="Create a kdist project"
 
-USAGE="create --kernel=<kernel-repository> --configs=<configs-repository> --kdist=<kdist-repository> <path>"
+USAGE="create [--kernel=<repository>] [--configs=<repository>] [--kdist=<repository>] <path>"
 
-config_repo=
-kernel_repo=
-kdist_repo=
+declare -A repositories
+declare -A default_repositories=(
+	[kernel]=git://git.kernel.org/pub/scm/linux/kernel/git/stable/linux-stable.git
+	[kdist]=git://github.com/fbuihuu/kdist.git
+)
 
 while :
 do
 	case $1 in
-	--kernel=*)	kernel_repo=${1#--kernel=} ;;
-	--configs=*)	config_repo=${1#--configs=} ;;
-	--kdist=*)	kdist_repo=${1#--kdist=} ;;
+	--configs=*)	repositories[config]=${1#--configs=} ;;
+	--kernel=*)	repositories[kernel]=${1#--kernel=} ;;
+	--kdist=*)	repositories[kdist]=${1#--kdist=} ;;
 	-*)		kdist__usage ;;
 	*)		break
 	esac
@@ -25,11 +27,23 @@ case $# in
 *)	kdist__usage
 esac
 
-# Prompt if a repo is missing
-for r in kernel_repo config_repo kdist_repo; do
-	case ${!r} in
-	"") read -p "Enter the location of ${r%_repo}'s repository: " $r
+# Prompt if a repo is missing.
+for m in kernel config kdist
+do
+	test -n "${repositories[$m]}" && continue
+
+	REPLY=
+	default=${default_repositories[$m]}
+	case $default in
+	"")
+		until [ -n "$REPLY" ]; do
+			read -p "Enter the location of ${m}'s repository: "
+		done ;;
+	*)
+		echo "Enter the location of ${m}'s repository"
+		read -p "[$default]: "
 	esac
+	repositories[$m]=${REPLY:-$default}
 done
 
 #
@@ -65,9 +79,9 @@ git add .gitignore &&
 git commit -s -m "Project creation" ||
 die "Failed to create initial commit."
 
-git submodule add $kdist_repo kdist &&
-git submodule add $config_repo configs &&
-git submodule add $kernel_repo kernel ||
+git submodule add ${repositories[kdist]} kdist &&
+git submodule add ${repositories[config]} configs &&
+git submodule add ${repositories[kernel]} kernel ||
 exit
 
 # Be sure we haven't missed anything.
