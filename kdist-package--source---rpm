@@ -78,7 +78,7 @@ package_flavour () {
 	#
 	for src
 	do
-		arch=$(config__read_architecture "$src")
+		arch=$(config__read_architecture "$src") || exit
 		rpm_exclusive+="$arch "
 
 		case $arch in

@@ -297,7 +297,7 @@ update_config () {
 	# Run Kbuild to update the config file.
 	#
 	arch=$(config__read_architecture $config) ||
-	die "config file seems corrupted, can't retrieve arch information."
+	die "config file seems corrupted."
 
 	do_update_config "$config" $arch ||
 	die "Failed to run make oldconfig for $t"

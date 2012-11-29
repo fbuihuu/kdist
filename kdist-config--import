@@ -38,7 +38,7 @@ if ! test $flavour; then
 	die "Your current config has no name, please specify one."
 fi
 
-arch=$(config__read_architecture .config)
+arch=$(config__read_architecture .config) || exit
 if test -n "$(config__resolve_files $arch/$flavour)"; then
 	die "Config '$flavour' already exists, aborting."
 fi

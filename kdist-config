@@ -145,9 +145,8 @@ config__default_pattern () {
 	test -n "$name" ||
 	die "Missing CONFIG_NAME, don't know where to propagate changes."
 
-	arch=$(config__read_architecture $1) &&
-	test -n "$arch" ||
-	die "Unable to determine the architecture of the current config."
+	arch=$(config__read_architecture $1) ||
+	exit
 
 	echo $arch/$name
 }

@@ -40,7 +40,7 @@ package_other () {
 # name.
 #
 package_flavour () {
-	rpm_exclusive=$(config__read_architecture $1)
+	rpm_exclusive=$(config__read_architecture $1) || exit
 
 	# Make sure the .config is uptodate otherwise uname_r is going
 	# to be filled with crap.

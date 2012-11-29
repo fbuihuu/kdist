@@ -48,8 +48,9 @@ case $# in
 0)
 	pat=$(config__read_flavour .config)
 	test -n "$pat" || die ".config doesn't have a flavour, you must specify one."
-	pat=$(config__read_architecture .config)/$pat
-	one=$(config__resolve_files --fullpath "$pat") || exit
+	pat=$(config__read_architecture .config)/$pat &&
+	one=$(config__resolve_files --fullpath "$pat") ||
+	exit
 	;;
 2)
 	two=$2

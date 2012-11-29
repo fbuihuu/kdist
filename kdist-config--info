@@ -24,5 +24,6 @@ if ! test -f "$path"; then
 fi
 
 name=$(config__read_flavour $path)
+arch=$(config__read_architecture $path 2>/dev/null)
 echo "name	:" ${name:-<undefined>}
-echo "arch	:" $(config__read_architecture $path)
+echo "arch	:" ${arch:-<unsupported>}
