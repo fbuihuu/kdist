@@ -315,7 +315,9 @@ config__save_repository
 
 for t in "${targets[@]}"
 do
-	update_config "$t" $(config__map_to_kernel ${t%%/*}) ||
+	v=${t%/*/*}
+	v=${v##*/}
+	update_config "$t" $(config__map_to_kernel $v) ||
 	die "Failed to update $t."
 done
 
