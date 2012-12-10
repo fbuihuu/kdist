@@ -118,20 +118,28 @@ kdist__check_project () {
 	[ -d "$1"/.git ] && [ -f "$1"/.gitmodules ]
 }
 
-kdist__cd_topdir () {
+kdist__get_topdir () (
 	until kdist__check_project .
 	do
 		cd .. && git__cd_topdir ||
 		die "No kdist project found."
 	done
+	pwd
+)
+
+kdist__get_repository () {
+	local topdir=$(kdist__get_topdir) &&
+	readlink -e "$topdir/$1" || exit
+}
+
+kdist__cd_topdir () {
+	local topdir=$(kdist__get_topdir) &&
+	cd "$topdir" || exit
 }
 
 kdist__cd_repository () {
-	{ kdist__cd_topdir && cd $1; } || exit
-}
-
-kdist__get_repository () {
-	(kdist__cd_repository $1 && pwd) || exit
+	local r=$(kdist__get_repository $1) &&
+	cd "$r" || exit
 }
 
 #
