@@ -128,18 +128,18 @@ kdist__get_topdir () (
 )
 
 kdist__get_repository () {
-	local topdir=$(kdist__get_topdir) &&
-	readlink -e "$topdir/$1" || exit
+	p=$(kdist__get_topdir) &&
+	readlink -e "$p/$1" || exit
 }
 
 kdist__cd_topdir () {
-	local topdir=$(kdist__get_topdir) &&
-	cd "$topdir" || exit
+	p=$(kdist__get_topdir) &&
+	cd "$p" || exit
 }
 
 kdist__cd_repository () {
-	local r=$(kdist__get_repository $1) &&
-	cd "$r" || exit
+	p=$(kdist__get_repository $1) &&
+	cd "$p" || exit
 }
 
 #
