@@ -58,8 +58,14 @@ kdist__run_handler () {
 	local script=kdist-$kdist_command${kdist_subcommand:+--$kdist_subcommand}
 	local path=$libexecdir/$script
 
-	test -r $path ||
-	die "'${kdist_subcommand:-$kdist_command}' command not found."
+	if ! test -r $path
+	then
+		case $KDIST_RESTRICTED_MODE in
+		yes)	hint=" (restricted mode)" ;;
+		no)	hint= ;;
+		esac
+		die "'${kdist_subcommand:-$kdist_command}': command not found$hint."
+	fi
 
 	case $kdist_command,$kdist_subcommand in
 	log,*|whatchanged,*)	: ${use_pager:=yes} ;;
