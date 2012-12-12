@@ -8,10 +8,8 @@ git__check_inside_worktree () {
 
 git__cd_topdir () {
 	local topdir
-	topdir=$(git rev-parse --show-toplevel) &&
-	cd "$topdir" || {
-		warn "Cannot chdir to $topdir, the toplevel of the working tree"
-	}
+	topdir=$(git rev-parse --show-toplevel 2>/dev/null) &&
+	cd "$topdir"
 }
 
 git__describe () {
