@@ -16,6 +16,7 @@ BuildRequires:		kernel-source = %{version}-%{mkrel %{source_release}}
 %endif
 
 %rename linux-userspace-headers
+%rename kernel-userspace-headers
 
 %define debug_package	%{nil}
 %define __check_files	%{nil}
