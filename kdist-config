@@ -57,17 +57,17 @@ config__ls_files () {
 		cd "$dir"
 		__config__ls_files "$@" | while read f
 		do
-			# 'import' command calls this function therefore the
-			# information may not be present.
+			# Sanity check: any given config files must
+			# have an associated info file.
+			config_info__load $(basename $f)
+
 			if [ $type ]; then
-				config_info__load $(basename $f)
 				case $(config_info__get_type) in
 				${type:-*})		;;
 				*)	continue
 				esac
 			fi
 			if [ $filter ]; then
-				config_info__load $(basename $f)
 				case $f in
 				$(config_info__get_filter))	;;
 				*)	continue
