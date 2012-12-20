@@ -53,37 +53,38 @@ config__ls_files () {
 		shift
 	done
 
-	dir=$(kdist__get_repository configs) && (
-		cd "$dir"
-		__config__ls_files "$@" | while read f
-		do
-			# Sanity check: any given config files must
-			# have an associated info file.
-			config_info__load $(basename $f)
+	kdist__cd_repository configs
 
-			if [ $type ]; then
-				case $(config_info__get_type) in
-				${type:-*})		;;
-				*)	continue
-				esac
-			fi
-			if [ $filter ]; then
-				case $f in
-				$(config_info__get_filter))	;;
-				*)	continue
-				esac
-			fi
+	__config__ls_files "$@" | while read f
+	do
+		# Sanity check: any given config files must
+		# have an associated info file.
+		config_info__load $(basename $f)
 
-			#
-			# Sanity check: be sure the user hasn't messed up
-			# the name in the config file.
-			#
-			[ $(config_info__get_name) = "$(config__read_flavour $f)" ] ||
-			die "The flavour in '$f' is corrupted."
+		if [ $type ]; then
+			case $(config_info__get_type) in
+			${type:-*})		;;
+			*)	continue
+			esac
+		fi
+		if [ $filter ]; then
+			case $f in
+			$(config_info__get_filter))	;;
+			*)	continue
+			esac
+		fi
 
-			echo "${fullpath:+$dir/}$f"
-		done
-	)
+		#
+		# Sanity check: be sure the user hasn't messed up
+		# the name in the config file.
+		#
+		[ $(config_info__get_name) = "$(config__read_flavour $f)" ] ||
+		die "The flavour in '$f' is corrupted."
+
+		echo "${fullpath:+$(pwd)/}$f"
+	done
+
+	cd - >/dev/null
 }
 
 #
