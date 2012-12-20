@@ -23,8 +23,7 @@ if test $# -ne 1; then
 	kdist__usage
 fi
 
-kdist__cd_repository kernel ||
-exit
+kdist__cd_repository kernel
 
 #
 # Find out the config file to install

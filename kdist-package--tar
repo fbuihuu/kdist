@@ -177,7 +177,7 @@ fi
 # include the release version number.
 #
 origin_directory=$(pwd)
-kdist__cd_repository kernel || exit
+kdist__cd_repository kernel
 
 git__check_clean_work_tree ||
 	warn "Your local changes won't be included in the tarball"
