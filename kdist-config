@@ -74,6 +74,13 @@ config__ls_files () {
 				esac
 			fi
 
+			#
+			# Sanity check: be sure the user hasn't messed up
+			# the name in the config file.
+			#
+			[ $(config_info__get_name) = "$(config__read_flavour $f)" ] ||
+			die "The flavour in '$f' is corrupted."
+
 			echo "${fullpath:+$dir/}$f"
 		done
 	)
