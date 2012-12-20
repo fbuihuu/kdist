@@ -30,13 +30,13 @@ kdist__cd_repository kernel
 #
 for f in $(config__resolve_files "$1")
 do
-	[ -z "$config" ] || {
-		die "The given pattern matches too many files."
-	}
+	[ -z "$config" ] ||
+	die "The given pattern matches too many files."
+
 	config=$f
 done
 test -z "$config" &&
-	die "The given pattern gives no match."
+die "The given pattern gives no match."
 
 #
 # Found.
