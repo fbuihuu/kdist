@@ -28,7 +28,6 @@ exit
 if ! test -f .config; then
 	die "Nothing to import, .config is missing"
 fi
-dotconfig="$(pwd)/.config"
 
 #
 # Figure out where to import the new config.
@@ -88,7 +87,7 @@ dst+=$flavour
 
 echo Importing current config to $dst
 mkdir -p $(dirname $dst) &&
-cp $dotconfig $dst &&
+cp $(kdist__get_repository kernel)/.config $dst &&
 git add $dst &&
 
 trap - 0
