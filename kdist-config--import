@@ -31,10 +31,18 @@ fi
 #
 # Figure out where to import the new config.
 #
-if ! test $flavour; then
-	flavour=$(config__read_flavour .config) ||
-	die "Your current config has no name, please specify one."
-fi
+dotflavour=$(config__read_flavour .config)
+case "$flavour","$dotflavour" in
+"","")
+	die "Your current config has no flavour, you must specify one." ;;
+"",*)
+	flavour=$dotflavour ;;
+*,"")
+	;;
+*,*)
+	test "$flavour" != "$dotflavour" &&
+	die "The flavour specified doesn't match the one in .config ($dotflavour)."
+esac
 
 arch=$(config__read_architecture .config) || exit
 if test -n "$(config__resolve_files $arch/$flavour)"; then
