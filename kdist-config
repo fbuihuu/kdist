@@ -55,7 +55,7 @@ config__ls_files () {
 
 	kdist__cd_repository configs
 
-	__config__ls_files "$@" | while read f
+	while read f
 	do
 		# Sanity check: any given config files must
 		# have an associated info file.
@@ -82,7 +82,8 @@ config__ls_files () {
 		die "The flavour in '$f' is corrupted."
 
 		echo "${fullpath:+$(pwd)/}$f"
-	done
+
+	done < <(__config__ls_files "$@")
 
 	cd - >/dev/null
 }
