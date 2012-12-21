@@ -16,9 +16,12 @@ AutoReqProv:		no
 %description
 This package provides the whole kernel source files.
 
+%prep
+%setup -q -n %{archive}
+
 %install
 mkdir -p %{buildroot}%{_source_path}
-tar -xf %{SOURCE0} --strip-components=1 -C %{buildroot}%{_source_path}
+tar -cf - . | tar -xf - -C %{buildroot}%{_source_path}
 
 %clean
 rm -rf %{buildroot}
