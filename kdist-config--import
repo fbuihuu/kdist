@@ -38,7 +38,8 @@ case "$flavour","$dotflavour" in
 "",*)
 	flavour=$dotflavour ;;
 *,"")
-	;;
+	warn "Naming your .config as '$flavour'."
+	config__set_flavour $flavour .config ;;
 *,*)
 	test "$flavour" != "$dotflavour" &&
 	die "The flavour specified doesn't match the one in .config ($dotflavour)."
