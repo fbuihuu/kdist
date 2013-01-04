@@ -122,6 +122,10 @@ config__read_flavour () {
 	config__lookup_symbol NAME "$1"
 }
 
+config__set_flavour () {
+	config__set_symbol "\"$1\"" NAME "$2"
+}
+
 config__read_architecture () {
 	local arch
 
