@@ -100,17 +100,18 @@ config__unset_symbol () {
 }
 
 config__append_symbol () {
-	local old new=$1
+	local old new
 
 	old=$(config__lookup_symbol_quotes $2 "$3")
 	case $old in
-	"")	# value is not set or doesn't exist yet: 'new' is
-		# already initialized.
-		;;
+	"")
+		new=$1 ;;
 	\"*\")
-		# append inside the quotes
-		new=${old%\"}
-		new=$new$1\" ;;
+		# 'new' should include the quotes in this case. Handle
+		# the case if not.
+		new=${1#\"}
+		old=${old%\"}
+		new=$old${new%\"}\" ;;
 	*)
 		warn "trying to append to a no string value for symbol '$2'"
 		return
