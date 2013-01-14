@@ -23,7 +23,7 @@ export -f kdist
 #
 # The version can be changed during the installation.
 #
-KDIST_VERSION=v0.7
+KDIST_VERSION=v0.8
 
 #
 # This path is changed during installation.
