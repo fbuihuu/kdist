@@ -2,7 +2,7 @@
 
 SUMMARY="Set up a config for the tracked kernel"
 
-USAGE="install [--no-flavour] <pattern>"
+USAGE="[--no-flavour] <pattern>"
 
 with_flavour=yes
 
