@@ -2,15 +2,11 @@
 
 SUMMARY="Set up a config for the tracked kernel"
 
-USAGE="[--no-flavour] <pattern>"
-
-with_flavour=yes
+USAGE="<pattern>"
 
 while :
 do
 	case $1 in
-	--no-flavour)
-		with_flavour= ;;
 	-*)
 		kdist__usage ;;
 	*)
@@ -51,8 +47,4 @@ config=$(kdist__get_repository configs)/$config
 } &&
 
 # do the install.
-cp $config .config &&
-
-if ! test $with_flavour; then
-	config__unset_symbol NAME .config
-fi
+cp $config .config
