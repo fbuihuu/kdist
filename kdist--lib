@@ -232,7 +232,7 @@ kdist__setup_kernel_release () {
 	return
 
 	#
-	# Retrieve the localversion (LOCALVERSION + scm + NAME)
+	# Retrieve the localversion (NAME/LOCALVERSION + scm)
 	#
 	KERNEL_VERSION_LOCAL=${KERNEL_RELEASE#$KERNEL_VERSION}
 }

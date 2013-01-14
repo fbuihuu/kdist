@@ -42,7 +42,7 @@ case "$flavour","$dotflavour" in
 	config__set_flavour $flavour .config ;;
 *,*)
 	test "$flavour" != "$dotflavour" &&
-	die "The flavour specified doesn't match the one in .config ($dotflavour)."
+	die "The flavour specified doesn't match the one in the current .config ($dotflavour)."
 esac
 
 arch=$(config__read_architecture .config) || exit

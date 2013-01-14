@@ -1,6 +1,10 @@
 #! /bin/bash
 
 
+config_info__list () {
+	ls "$(kdist__get_repository configs)"/*.info 2>/dev/null || :
+}
+
 __current_config_name=
 __current_config_type=
 __current_config_desc=
@@ -119,12 +123,45 @@ config__append_symbol () {
 	config__set_symbol "$new" $2 "$3"
 }
 
+config__list_flavour () {
+	for info in $(config_info__list); do
+		basename $info .info
+	done
+}
+
+config__has_flavour () {
+	local localver=$(config__lookup_symbol LOCALVERSION "$1")
+	[[ "$localver" =~ -"$2"(-|$) ]]
+}
+
 config__read_flavour () {
-	config__lookup_symbol NAME "$1"
+	local flavour
+
+	for flavour in $(config__list_flavour); do
+		if config__has_flavour "$1" $flavour; then
+			echo $flavour
+			return
+		fi
+	done
 }
 
 config__set_flavour () {
-	config__set_symbol "\"$1\"" NAME "$2"
+	case $(config__read_flavour "$2") in
+	'')
+		# Make sure localversion doesn't already have the name
+		# even thought the info file doesn't exist (yet).
+		if config__has_flavour "$2" $1; then
+			warn "$2 is already marked as '$1'"
+			return
+		fi
+
+		# No flavour yet, simply append the name to LOCALVERSION.
+		config__append_symbol "\"-$1\"" LOCALVERSION "$2" ;;
+	*)
+		# For now it's an error to overwrite an existing name.
+		warn "error: trying to overwrite config's name, aborting."
+		;;
+	esac
 }
 
 config__read_architecture () {

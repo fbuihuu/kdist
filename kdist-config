@@ -152,7 +152,7 @@ config__default_pattern () {
 
 	name=$(config__read_flavour $1) &&
 	test -n "$name" ||
-	die "Missing CONFIG_NAME, don't know where to propagate changes."
+	die "Missing config name, don't know where to propagate changes."
 
 	arch=$(config__read_architecture $1) ||
 	exit
