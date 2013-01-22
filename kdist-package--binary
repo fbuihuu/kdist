@@ -31,6 +31,13 @@ do
 	shift
 done
 
+package__init
+
+case $package_type in
+rpm)	source $libexecdir/kdist-package--binary---rpm ;;
+esac ||
+exit
+
 case $1 in
 source|headers|firmware|tools/*)
 	;;
@@ -42,13 +49,6 @@ source|headers|firmware|tools/*)
 *)
 	kdist__usage
 esac
-
-package__init
-
-case $package_type in
-rpm)	source $libexecdir/kdist-package--binary---rpm ;;
-esac ||
-exit
 
 package__main $1 || {
 	test "$verbose" =! yes &&

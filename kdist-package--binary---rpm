@@ -107,16 +107,7 @@ do
 done
 
 case $1 in
-firmware|headers|source|tools/*)
-	;;
-'')
-	#
-	# FIXME: it would be nice to check that the kernel has been
-	# compiled and vmlinux is uptodate.
-	#
-	local_build_release=yes ;;
-*)
-	kdist__usage
+'')	local_build_release=yes ;;
 esac
 
 rpm__init_bin
