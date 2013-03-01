@@ -194,11 +194,11 @@ package__main () {
 
 	case $t in
 	*-dirty)
-		say -n "Project index is not clean" ;;&
+		warn -n "Project index is not clean" ;;&
 	"")
-		say -n "Packaging non released project" ;;&
+		warn -n "Packaging non released project" ;;&
 	""|*-dirty)
-		say ", forcing build release number to 0."
+		warn ", forcing build release number to 0."
 		release_build=0
 		scmversion=$(git__scmversion $package_tag) ;;
 	*)
