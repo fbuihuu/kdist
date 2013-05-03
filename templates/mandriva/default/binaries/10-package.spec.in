@@ -14,7 +14,7 @@ BuildRoot:		%{_tmppath}/%{name}-%{version}-root
 @RPM_SOURCES@
 Requires:		kernel-firmware
 Requires(pre):		bootloader-utils
-Requires(pre):		mkinitrd
+Requires(pre):		dracut
 Requires(pre):		module-init-tools
 BuildRequires:		module-init-tools
 %if %no_source
