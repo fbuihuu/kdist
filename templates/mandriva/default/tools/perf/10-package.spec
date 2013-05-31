@@ -23,6 +23,7 @@ BuildRequires:		python-devel
 %if %{with doc}
 BuildRequires:		asciidoc
 BuildRequires:		xmlto docbook-dtd45-xml
+BuildRequires:		docbook-xsl docbook-style-xsl
 BuildRequires:		gettext
 %endif
 
