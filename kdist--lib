@@ -88,6 +88,9 @@ kdist__run_subcommand () {
 	case $kdist_command,$kdist_subcommand in
 	config,diff)		: ${use_pager:=yes} ;;
 	release,list)		: ${use_pager:=yes} ;;
+	bug,log)		: ${use_pager:=yes} ;;
+	bug,show)		: ${use_pager:=yes} ;;
+	bug,list-db)		: ${use_pager:=yes} ;;
 	*,)			kdist__usage ;;
 	esac
 

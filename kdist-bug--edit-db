@@ -1,0 +1,164 @@
+#! /bin/bash
+
+SUMMARY="Edit the content of an entry of the BUG database"
+
+USAGE="[--since-filter=<cmd>] [--notes-filter=<cmd>] <bug-ids>...
+                         --edit=since|notes <bug-ids>...
+                         --since=<version> <bug-id>
+                         --ignore <bug-ids>...
+                         --remove <bug-ids>..."
+
+action=
+filter_since=
+filter_notes=
+
+while :
+do
+	case "$1" in
+	-h|--he|--hel|--help)
+		kdist__usage ;;
+	--*-filter=*)
+		[ $action ] && [ $action != filter ] && kdist__usage
+		action=filter
+		case "$1" in
+		--since-*)
+			filter_since=${1#--*-filter=} ;;
+		--notes-*)
+			filter_notes=${1#--*-filter=} ;;
+		*)
+			kdist__usage ;;
+		esac ;;
+	--edit=*)
+		[ $action ] && kdist__usage
+		action=edit
+		case ${1#--edit=} in
+		since)		field=since ;;
+		notes)		field=notes ;;
+		*)		kdist__usage ;;
+		esac
+		;;
+	--since=*)
+		[ $action ] && kdist__usage
+		since=${1#--since=}
+		action=since ;;
+	--remove)
+		[ $action ] && kdist__usage
+		action=remove ;;
+	--ignore)
+		[ $action ] && kdist__usage
+		action=ignore ;;
+	-*)
+		kdist__usage ;;
+	*)
+		break ;;
+	esac
+	shift
+done
+
+case $action in
+remove|filter|edit|ignore)
+	test $# -lt 1 && kdist__usage ;;
+since)
+	test $# -ne 1 && kdist__usage ;;
+*)
+	kdist__usage
+esac
+
+# First: check the given BUGs exist, now.
+for bug; do
+	bug_db__query_by_id $bug ||
+	die "Unknown bug '$bug', exiting."
+done
+
+cleanup_on_exit () {
+	rm -f $tmpfile
+}
+trap cleanup_on_exit EXIT
+
+tmpfile=$(mktemp)
+
+since_bugs () {
+	kdist__cd_repository kernel
+
+	test -n "$(git tag -l v${since#v})" ||
+	die "Unknown kernel release $since."
+	bug_since=$since
+	bug_db__update $bug since
+}
+
+remove_bugs () {
+	for bug; do
+		bug_db__remove $bug || {
+			warn "Failed to remove '$bug', aborting."
+			return 1
+		}
+	done
+}
+
+ignore_bugs () {
+	for bug; do
+		bug_db__query_by_id $bug
+		bug_is_ignored=true
+		bug_db__update $bug flags
+	done
+}
+
+edit_bugs () {
+	for bug; do
+		bug_db__query_by_id $bug
+
+		value=bug_$field
+		value=${!value}
+		echo -n "$value" >$tmpfile
+
+		kdist__editor $tmpfile || {
+			warn "Failed to update '$field' for '$bug'."
+			return 1
+		}
+
+		case $field in
+		since)	bug_since=$(<$tmpfile) ;;
+		notes)	bug_notes=$(<$tmpfile) ;;
+		esac
+		bug_db__update $bug $field || {
+			warn "Failed to update '$field' field for '$bug'"
+			return 1
+		}
+	done
+}
+
+filter_bugs () {
+	for bug; do
+		for field in since notes; do
+
+			filter=filter_$field
+			filter=${!filter}
+
+			if test -z "$filter"; then
+				continue
+			fi
+
+			bug_db__query_by_id $bug
+			value=bug_$field
+			value=${!value}
+
+			export KDIST_BUG_ID=$bug
+			eval "$filter" >$tmpfile <<<"$value" || {
+				warn "'$field' filter failed for '$bug'."
+				return 1
+			}
+
+			case $field in
+			since)	bug_since=$(<$tmpfile) ;;
+			notes)	bug_notes=$(<$tmpfile) ;;
+			esac
+			bug_db__update $bug $field || {
+				warn "Failed to update '$field' field for '$bug'"
+				return 1
+			}
+		done
+	done
+}
+
+${action}_bugs $* ||
+die "You should restore DB previous state."

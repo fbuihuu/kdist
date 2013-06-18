@@ -1,0 +1,186 @@
+#! /bin/bash
+
+SUMMARY="Import new bugs into the kdist's database."
+
+USAGE="[-v] [--map=file] cve <list.txt> [ids...]"
+
+declare -i stat_total=0
+declare -i stat_imported=0
+declare -i stat_processed=0
+declare -i stat_updated=0
+declare -i stat_warnings=0
+
+LF='
+'
+
+bug_import__update_notes () {
+	local new_notes=$(bug_db__sanitize_notes "$1")
+
+	test -z "$new_notes" &&
+	return 1
+
+	test "$new_notes" = "$bug_notes" &&
+	return 1
+
+	if test -n "$bug_notes"; then
+		new_notes="Notes auto updated $(date +%x):${LF}${new_notes}"
+		new_notes+="${LF}${LF}"
+		new_notes+="Old notes can be found below:${LF}"
+		new_notes+="${bug_notes}"
+	fi
+
+	bug_notes=$new_notes
+	bug_db__update $id notes
+}
+
+bug_import__insert_one () {
+	bug_db__insert $id "$url" ||
+	die "Failed to insert $id into the DB, aborting."
+
+	# Drop initial notes for fully resolved bugs.
+	test $sha1 && $is_mainlined ||
+	bug_import__update_notes "$notes"
+
+	case $sha1 in
+	'')
+		say "Importing  $id (unresolved)" ;;
+	*)
+		say "Importing  $id (fixed)"
+		kdist bug fix -q $id $sha1 || exit ;;
+	esac
+
+	stat_imported+=1
+}
+
+bug_import__update_one () {
+
+	test "$bug_url" != "$url" &&
+	bug_db__update $id url
+
+	# handle update cases
+	case $sha1,$bug_sha1 in
+	'','')
+		# nothing change, maybe some notes has been added
+		# since ?
+		if bug_import__update_notes; then
+			say "Updating   $id (notes)"
+			stat_update+=1
+		else
+			say "Skipping   $id (no changes)"
+		fi ;;
+	*,'')
+		# it becomes resolved, update it
+		stat_updated+=1
+		echo "Updating  $id (fix available)"
+		kdist bug fix -q $id $sha1 || exit ;;
+	'',*)
+		# it would become unresolved, warn.
+		stat_warnings+=1
+		warn "Ignoring entry for $id (would make it unresolved)" ;;
+	*,$sha1)
+		# we don't really care about notes since the fix is
+		# still the same.
+		say "Skipping   $id (no changes)" ;;
+	*,*)
+		# let kdist-bug--fix deals with all possible cases
+		if kdist bug fix -q $id $sha1 2>/dev/null; then
+			echo "Updating      $id (fix in mainline)"
+			stat_update+=1
+		else
+			echo "Skipping fix  $id (not good enough)"
+		fi
+	esac
+}
+
+bug_import__process_one () {
+
+	stat_processed+=1
+
+	if ! bug_db__query_by_id $id; then
+		bug_import__insert_one
+		return
+	fi
+	bug_import__update_one
+}
+
+mapfile=
+verify_map=false
+format=
+
+while :
+do
+	case "$1" in
+	-v|--verbose)
+		verbose=yes ;;
+	--map=*)
+		mapfile=${1#--map=} ;;
+	--verify-map)
+		verify_map=true ;;
+	-*)
+		kdist__usage ;;
+	*)
+		break ;;
+	esac
+	shift
+done
+
+if test $# -lt 2; then
+	kdist__usage
+fi
+
+format=$1
+filename=$2
+shift 2
+pattern__add "$@"
+
+filename=$(readlink -e "$filename") ||
+die "Can't found list file."
+
+if test -n "$mapfile"; then
+	mapfile=$(readlink -e $mapfile) ||
+	die "Can't read mapfile."
+fi
+
+#
+# The map-file contains bugs and their corresponding fix in
+# mainline. Their report doesn't allow to find the existing fix. The
+# following (manually filled) table helps in this case.
+#
+kdist__cd_repository kernel
+
+if test -n "$mapfile"; then
+	declare -A resolved_table
+
+	$verify_map &&
+	warn "Checking map file, this may take a while..."
+
+	while read id h; do
+		# skip blank lines or comments
+		case $id in
+		\#*)	continue ;;
+		'')	continue ;;
+		esac
+
+		$verify_map && {
+			git__is_ancestor master $h ||
+			bug "mapfile incorrect: '$h' is not part of upstream"
+		}
+		resolved_table[$id]=$h
+	done <$mapfile
+
+	$verify_map &&
+	warn "Done."
+fi
+
+case $format in
+cve|CVE)	kdist_subcommand=import---cve ;;
+*)		die "Import of $format bugs is not implemented yet."
+esac
+
+kdist__run_subcommand "$@"
+echo "---------------------------------"
+echo "Number of bugs           : $stat_total"
+echo "Number of bug processed  : $stat_processed"
+echo "Number of bug imported   : $stat_imported"
+echo "Number of bug updated    : $stat_updated"
+echo "Number of warnings:      : $stat_warnings"

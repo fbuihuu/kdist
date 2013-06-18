@@ -1,0 +1,104 @@
+#! /bin/bash
+
+SUMMARY="Mark bug as fixed"
+
+USAGE="[-q] [--replace|--duplicate|--local] <bug-id> [<rev>]"
+
+force=no
+verbose=yes
+local=false
+replace=false
+duplicate=false
+
+while
+	case $1 in
+	-f|--force)
+		force=yes ;;
+	-q|--quiet)
+		verbose=false ;;
+	--local)
+		local=true ;;
+	--replace)
+		replace=true ;;
+	--duplicate)
+		duplicate=true ;;
+	-*)
+		kdist__usage ;;
+	*)
+		break
+	esac
+do
+	shift
+done
+
+case $# in
+1)
+	id=$1
+	rev=HEAD ;;
+2)
+	id=$1
+	rev=$2 ;;
+*)
+	kdist__usage
+esac
+
+kdist__cd_repository kernel
+
+sha1=$(git rev-parse --verify $rev^{}) ||
+exit
+
+bug_db__query_by_id $id ||
+die "Unknown bug '$id'."
+
+$bug_is_ignored &&
+warn "warning: fixing $id which is currently ignored."
+
+# The user might be interested to mark the commit only.
+test $sha1 = "$bug_sha1" &&
+die "commit is already registered as fix for '$id'."
+
+if git__is_ancestor master $sha1; then
+	is_sha1_mainlined=true
+else
+	is_sha1_mainlined=false
+fi
+
+do_updatedb=false
+
+if test -z "$bug_sha1"; then
+	# simply update the DB and mark the commit
+	do_updatedb=true
+
+elif $bug_is_mainlined && $is_sha1_mainlined; then
+	if $replace; then
+		bug_db__unregister_fix $bug_sha1 $id
+		do_updatedb=true
+
+	elif ! $duplicate; then
+		warn "Bug already fixed by a commit in mainline: $bug_sha1"
+		die  "Consider using '--replace' or '--duplicate' options."
+	fi
+
+elif $bug_is_mainlined && ! $is_sha1_mainlined; then
+	if ! $local; then
+		warn "$id is already fixed by commit $bug_sha1 in mailine."
+		die  "Consider using '--local' to remember this commit as fix."
+	fi
+
+elif ! $bug_is_mainlined && $is_sha1_mainlined; then
+	do_updatedb=true
+
+elif ! $bug_is_mainlined && ! $is_sha1_mainlined; then
+	if ! $duplicate; then
+		warn "$id is already fixed by local commit $bug_sha1"
+		die  "Consider using '--duplicate' to remember this commit as well."
+	fi
+fi
+
+bug_db__register_fix $sha1 $id
+
+if $do_updatedb; then
+	bug_sha1=$sha1
+	bug_is_mainlined=$is_sha1_mainlined
+	bug_db__update $id sha1
+fi

@@ -1,0 +1,69 @@
+#! /bin/bash
+
+SUMMARY="List the content of the BUG database"
+
+USAGE="[-v] [-r|--reverse] [--ignored|--unresolved] [--max-version=<version>] [--exclude-from=<file>] <pattern>"
+
+exclude_file=
+max_version=
+reverse=
+only_ignored=false
+only_unresolved=false
+
+while :
+do
+	case "$1" in
+	-v|--verbose)
+		verbose=yes ;;
+	--exclude-from=*)
+		exclude_file=${1#--exclude-from=} ;;
+	--max-version=*)
+		max_version=${1#--max-version=} ;;
+	--ignored)
+		only_ignored=true ;;
+	--unresolved)
+		only_unresolved=true ;;
+	-r|--reverse)
+		reverse=-r ;;
+	-*)
+		kdist__usage ;;
+	*)
+		break
+	esac
+	shift
+done
+
+if test -n "$exclude_file"; then
+	if ! test -f "$exclude_file"; then
+		die "Can't find '$exclude_file'"
+	fi
+fi
+
+bug_db__list $reverse "$@" | while read id
+do
+	bug_db__query_by_id $id
+
+	if $only_ignored; then
+		$bug_is_ignored || continue
+	else
+		$bug_is_ignored && continue
+	fi
+
+	if $only_unresolved; then
+		test $bug_sha1 && continue
+	fi
+
+	# exclude from file filter
+	test -n "$exclude_file" &&
+	grep -q "^$id\$" "$exclude_file" &&
+	continue
+
+	# max-version filter
+	test -n "$max_version" &&
+	test -n "${bug_since}" && {
+		version__cmp ${bug_since} $max_version
+		case $? in 1) continue ;; esac
+	}
+
+	echo $id
+done

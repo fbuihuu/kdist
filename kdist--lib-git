@@ -43,6 +43,10 @@ git__ls_remote () {
 	warn "Failed to list remote refs in '$1'"
 }
 
+git__is_ancestor () {
+	test $(git merge-base $1 $2) = $2
+}
+
 git__scmversion () {
 	local short=false
 

@@ -9,4 +9,5 @@ if test $# -gt 0; then
 fi
 
 kdist__cd_topdir &&
-git submodule update --init
+git submodule update --init &&
+kdist bug --init

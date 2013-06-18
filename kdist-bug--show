@@ -1,0 +1,90 @@
+#! /bin/bash
+
+SUMMARY="Show BUG information given a BUG id"
+
+USAGE="[--help] [--format=compact|full|format:<fmt>] <bug-id>..."
+
+format=full
+
+while :
+do
+	case "$1" in
+	-h|--he|--hel|--help)
+		kdist__usage ;;
+	--format=*)
+		format=${1#--format=} ;;
+	-*)
+		kdist__usage ;;
+	*)
+		break
+	esac
+	shift
+done
+
+case $# in
+0)	kdist__usage ;;
+esac
+
+bug_show__pretty_print () {
+	local id=$1
+
+	case $format in
+	compact|full)
+		echo "Name:       $id"
+		test -n "$bug_url"   && echo "Url:        $bug_url"
+		test -n "$bug_since" && echo "Since:      $bug_since"
+		$bug_is_ignored      && echo "Ignored:    True"
+
+		case $bug_sha1,$bug_flags in
+		'',*)	;;
+		*,*M*)	echo "Fix:        $bug_sha1 (mainline)" ;;
+		*,*)	echo "Fix:        $bug_sha1" ;;
+		esac
+		;;&
+	full)
+		if test -n "$bug_notes"; then
+			echo
+			echo "Notes:"
+			while read -r line; do
+				echo "    $line"
+			done <<<"$bug_notes"
+		fi
+		;;
+	format:*)
+		percent=false
+		echo -n "${format#format:}" | while IFS='' read -n1 ch
+		do
+			if $percent; then
+				case $ch in
+				%)	printf '%%' ;;
+				n)	printf '\n' ;;
+				i)	printf '%s' "$id" ;;
+				h)	printf '%s' "$bug_sha1" ;;
+				s)	printf '%s' "$bug_since" ;;
+				N)	printf '%s' "$bug_notes" ;;
+				u)	printf '%s' "$bug_url" ;;
+				*)	printf "%%$ch" # unknown placeholder
+				esac
+				percent=false
+			else
+				case $ch in
+				%)	percent=true ;;
+				*)	printf '%s' "$ch" ;;
+				esac
+			fi
+		done
+		;;
+	esac
+}
+
+declare -i i=0
+
+for id in $*
+do
+	bug_db__query_by_id $id ||
+	exit
+
+	test $i -gt 0 && echo
+	bug_show__pretty_print $id
+	i+=1
+done

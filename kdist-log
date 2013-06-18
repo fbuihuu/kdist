@@ -60,7 +60,7 @@ if test -z "$since"; then
 fi
 
 if $all; then
-	modules="project $(module__list)"
+	modules="project $(module__list) bugs"
 fi
 
 log_kernel () (
@@ -80,6 +80,22 @@ log_kernel () (
 	kdist whatchanged $kept_opt --header \
 		$s $u ${tag_u%-*} ${tag_s%-*} 2>/dev/null
 )
+
+log_bugs () {
+	u=$(module__get_sha1 $until kernel) &&
+	s=$(module__get_sha1 $since kernel) ||
+	return
+
+	# FIXME: we probably need to introduce a new command: kdist bug diff...
+	cves="$(kdist bug log --cherry-pick --right-only --no-merges --format=short $s...$u)"
+	test -z "$cves" &&
+	return
+
+	printf "* Kernel CVE fixed since $since: (%d)\n" $(echo "$cves" | wc -l)
+	while read line; do
+		echo "  $line"
+	done <<< "$cves"
+}
 
 log_configs () {
 	git diff --submodule $since $until -- configs |

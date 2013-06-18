@@ -1,0 +1,387 @@
+#! /bin/bash
+
+SUMMARY="Track your BUGs"
+
+USAGE="--init
+                 [--force] <command> [<args>]"
+
+KDIST_BUG_NOTES_REF=refs/notes/kdist/bugs
+
+bug__init () {
+	local ret
+
+	kdist__cd_repository kernel
+
+	#
+	# Always configure kernel git repository for bugs tracking
+	# even if this kernel doesn't track any bugs.
+	#
+	# We don't use GIT_NOTES_REWRITE_REF since the user can use
+	# plain git commands such as git-rebase,
+	#
+	# For now, we don't need to deal with notes rewriting mode since we
+	# normally don't amend commits with notes.
+	#
+	git config notes.rewriteRef $KDIST_BUG_NOTES_REF
+
+	#
+	# If the notes ref is missing that means either we're creating
+	# a new project or the remote has none.
+	#
+	if ! git show-ref -q --verify $KDIST_BUG_NOTES_REF; then
+		git ls-remote --exit-code origin $KDIST_BUG_NOTES_REF >/dev/null
+		case $? in
+		0)
+			warn "Fetching bugs annotations from kernel repository..."
+			git fetch -q origin $KDIST_BUG_NOTES_REF:$KDIST_BUG_NOTES_REF ;;
+		2)
+			# both have none, fine.
+			true ;;
+		*)
+			false ;;
+		esac || {
+			warn "Failed to fetch bug annotations from remote. Most of the"
+			warn "kdist bug commands won't work properly and will fail to"
+			warn "report bug fixes. You should try to fix that."
+		}
+	else
+		git ls-remote --exit-code origin $KDIST_BUG_NOTES_REF >/dev/null
+		case $? in
+		2)
+			# remote has no notes
+			warn "Origin is missing the annotations you're currently having."
+			warn "Don't forget to push your bug annotations, you can try:"
+			warn
+			warn "  git push origin $KDIST_BUG_NOTES_REF:$KDIST_BUG_NOTES_REF" ;;
+		0)
+			# check if we need merge or update
+			warn "Trying to update your bug annotations..."
+			git fetch -q origin $KDIST_BUG_NOTES_REF:refs/notes/kdist/scratch &&
+			git notes --ref=$KDIST_BUG_NOTES_REF merge -v kdist/scratch ;;
+		*)
+			# failed to contact remote, this isn't critival.
+			true ;;
+		esac
+	fi
+	ret=$?
+	# clean up unconditionally the temporary ref used for notes merging.
+	git update-ref -d refs/notes/kdist/scratch
+	cd - >/dev/null
+	return $ret
+}
+
+#
+# init is kept as an option (not a command) because it's not intended
+# for normal users, at least for now.
+#
+force=false
+
+while
+	case $1 in
+	--init)		bug__init; exit ;;
+	--force)	force=true ;;
+	-*)		kdist__usage ;;
+	*)		break
+	esac
+do
+	shift
+done
+
+kdist_subcommand=$1
+shift
+
+bug_db__path () {
+	echo $(kdist__get_repository)/bugs/data/$1
+}
+
+bug_db__check () {
+	test -d $(kdist__get_repository)/bugs || {
+		warn "You don't seem to have any imported bugs in your project."
+		warn "Try to import some with: 'kdist bug import' command."
+		exit
+	}
+
+	kdist__cd_repository kernel
+
+	#
+	# Let bug__init() handles the bug annotations retrieval if
+	# needed.
+	#
+	# If the notes ref exists, we'll check later if it needs
+	# merging.
+	#
+	if ! git show-ref -q --verify $KDIST_BUG_NOTES_REF; then
+		if ! bug__init; then
+			if ! $force; then
+				warn "Use '--force' to proceed."
+				exit
+			fi
+		fi
+	fi
+	cd - >/dev/null
+}
+
+bug_db__insert () {
+	local id=$1 url="$2"
+	local path=$(bug_db__path $id)
+
+	test -f $path &&
+	bug "trying to insert already present bug $id"
+
+	mkdir -p $(dirname $path)
+	{
+		test -n "$url" && echo url=\"$url\"
+	} >$path
+
+	return 0
+}
+
+bug_db_all_fields="url sha1 flags since notes"
+
+__reset_bug_queried_values () {
+	for f in $bug_db_all_fields; do
+		eval bug_$f=
+	done
+	bug_is_ignored=false
+	bug_is_mainlined=false
+}
+
+bug_db__query_by_id () {
+	local $bug_db_all_fields
+	local id=$1
+ 	local -i i=1
+
+	__reset_bug_queried_values
+
+	test -f $(bug_db__path $id) ||
+	return
+
+	source $(bug_db__path $id) &&
+	for f in $bug_db_all_fields; do
+		# remove prefixes for multiline values
+		eval bug_$f=\"'$(echo -n "${!f}" | sed -e "2,\$s/^ //")'\"
+	done ||
+	die "bug at $(bug_db__path $id) is corrupted."
+
+	# Just in case user manually edited the bug data.
+	case $bug_since in
+	v*)	bug_since=${bug_since#v} ;;
+	esac
+
+	case $bug_flags in
+	*I*)	bug_is_ignored=true ;;
+	*M*)	bug_is_mainlined=true ;;
+	esac
+}
+
+__git_notes () {
+	git notes --ref=$KDIST_BUG_NOTES_REF "$@" || exit
+}
+
+bug_db__register_fix () {
+	local revs=
+
+	revs=$(bug__resolve_stable_commit $1)
+	revs=${revs:-$1}
+
+	for r in $revs; do
+		# is rev already marked ?
+		case "$(bug_db__query_by_rev $r)" in
+		*$2*)	;;
+		*)	__git_notes append -m "$2" $r
+		esac
+	done
+}
+
+bug_db__unregister_fix () {
+	local notes
+
+	notes=$(__git_notes show $1 2>/dev/null) ||
+	return
+
+	__git_notes remove $1
+	echo $notes | while read id; do
+		case $id in
+		$2)	continue ;;
+		esac
+		__git_notes append -m "$id" $1
+	done
+
+}
+
+# Returns all commits that is known as a fix for the passed ID.
+bug_db__find_all_fixes () {
+	kdist__cd_repository kernel
+
+	git grep -l $1 $KDIST_BUG_NOTES_REF | while read r; do
+		echo ${r#*:} | tr -d '/'
+	done
+
+	cd - >/dev/null
+}
+
+# Notes are essentially used on commits which are used as "reference"
+# for a fix. Stable commits are usually not in this case since they
+# points to upstream commits. Well sometimes this pointer is missing
+# (it's a mistake) and the stable commit becomes the reference.
+bug_db__query_by_rev () {
+	local notes m n
+
+	#
+	# commits not part of mainline are sometimes marked as fixes
+	# with git notes. It's the case when we have a 'local' fix
+	# which has not been mainlined yet (hence not in stable too).
+	#
+	notes=$(__git_notes show $1 2>/dev/null) || {
+		#
+		# Maybe a stable commit which points to a resolved
+		# commit in mainline.
+		#
+		for m in $(bug__resolve_stable_commit $1); do
+			n=$(__git_notes show $m 2>/dev/null) &&
+			notes+="$n "
+		done
+		# strip spaces
+		notes=$(echo $notes)
+	}
+	test -z "$notes" && return 1
+
+	# Debug: trap inconsistent DB state vs git notes
+	bug_db__list $notes >/dev/null ||
+	bug "commit $1 has a note pointing to an unexistent bug ID."
+	echo $notes
+}
+
+bug_db__sanitize_notes () {
+	echo -n "$1" | git stripspace
+}
+
+bug_db__update () {
+	local id=$1 field=$2 val
+	local -i i=1
+
+	val=bug_$field
+	val=${!val}
+
+	#
+	# Fields are using double quotes. Try first to delete field
+	# with a single line value then try a multiple lines value.
+	#
+	sed -i -e "/^$field=\".*[^\]\"/d" $(bug_db__path $id)
+	sed -i -e "/^$field=\"/,/^\"/d" $(bug_db__path $id)
+
+	# sanitize some fields.
+	case $field in
+	since)
+		val=${val#v} ;;
+	notes)
+		val=$(bug_db__sanitize_notes "$val") ;;
+	flags)
+		# bug_flags is not directly modified by caller, so
+		# update it.
+		bug_flags=
+		$bug_is_ignored   && bug_flags+=I
+		$bug_is_mainlined && bug_flags+=M
+		val=$bug_flags ;;
+	sha1)
+		# caller must keep bug_is_mainlined updated
+		bug_db__update $id flags ;;
+	esac
+
+	test -z "$val" &&
+	return
+
+	# Since the bug file is sourced to read the values, escape
+	# special characters that the shell still interpretes when
+	# enclosed in double quotes: $, `, \, ".
+	val=$(echo -n "$val" | sed -r 's/([$\`"])/\\&/g')
+
+	case $(echo "$val" | wc -l) in
+	1)
+		echo "$field=\"$val\"" ;;
+	*)
+		# add prefix for multiline values
+		echo -n "$field=\""
+		echo "$val" | sed -e '2,$s/^/ /'
+		echo \" ;;
+	esac >>$(bug_db__path $id)
+}
+
+bug_db__remove () {
+	rm -f $(bug_db__path $1)
+}
+
+bug_db__list () (
+	local reverse=-r
+
+	shopt -s nullglob
+	cd $(bug_db__path)
+
+	while
+		case "$1" in
+		-r|--reverse)	reverse= ;;
+		*)		break
+		esac
+	do
+		shift
+	done
+
+	# Trap any unexisting bug first so we don't output any ids in
+	# case of errors.
+	for e in $@; do
+		ls $e &>/dev/null || {
+			warn "Unknown bug '$e'"
+			return
+		}
+	done
+
+	ls $reverse $@
+)
+
+#
+# Scan the commit body in order to retrieve the corresponding
+# upstream commit if the commit is part of a stable branch.
+#
+_x40='[[:xdigit:]][[:xdigit:]][[:xdigit:]][[:xdigit:]][[:xdigit:]]'
+_x40="$_x40$_x40$_x40$_x40$_x40$_x40$_x40$_x40"
+
+z40=0000000000000000000000000000000000000000
+
+bug__resolve_stable_commit () {
+	local rev=$1 multiline=false line
+
+	git log -n1 --format=format:"%b" $rev | while read line
+	do
+		if $multiline; then
+			echo $line | grep -o $_x40
+			case $line in
+			*"]")	break ;;
+			esac
+		fi
+
+		case $line in
+		"commit "$_x40" upstream.")	# Greg KH format
+			line=${line#commit }
+			echo ${line% upstream.}
+			break ;;
+		"[ Upstream commit "$_x40" ]")	# David M. format
+			line=${line#*commit }
+			echo ${line% ]}
+			break ;;
+		"[ Upstream commits "$_x40*)	# David M. format
+			echo $line | grep -o $_x40
+			multiline=true
+			;;
+		"(cherry picked from commit "$_x40")")
+			line=${line#*commit }
+			echo ${line%)}
+			break ;;
+		esac
+	done
+}
+
+if test $kdist_subcommand != "import"; then
+	bug_db__check
+fi
+
+kdist__run_subcommand "$@"
