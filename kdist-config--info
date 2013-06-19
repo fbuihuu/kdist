@@ -2,7 +2,7 @@
 
 SUMMARY="Give information about a kernel configuration"
 
-USAGE="info [<path>]"
+USAGE="[<path>]"
 
 while
 	case $1 in

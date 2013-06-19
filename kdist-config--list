@@ -2,7 +2,7 @@
 
 SUMMARY="List available configs matching the given pattern"
 
-USAGE="list [--type=<name>] [--fullpath] <pattern>"
+USAGE="[--type=<name>] [--fullpath] <pattern>"
 
 type_opt=
 fullpath_opt=

@@ -2,7 +2,7 @@
 
 SUMMARY="Propagate a change to specified configs"
 
-USAGE="propagate [-i] [-n|--dry-run] [--type=<type>] [--origin=<pattern>] [<pattern>...]"
+USAGE="[-i] [-n|--dry-run] [--type=<type>] [--origin=<pattern>] [<pattern>...]"
 
 stage_opts=
 resolve_opts=

@@ -12,7 +12,7 @@
 #
 SUMMARY="Use a template to upgrade a set of configurations"
 
-USAGE="upgrade [--template=<file>] [--from=<version>] <type>"
+USAGE="[--template=<file>] [--from=<version>] <type>"
 
 declare -a targets
 template_opt=

@@ -2,7 +2,7 @@
 
 SUMMARY="Update configurations using a given kernel"
 
-USAGE="update [-v] [-i] [-n|--dry-run] [--force|-f] [--template=<file>] [--type=<type>] [file]|[<pattern>...]"
+USAGE="[-v] [-i] [-n|--dry-run] [--force|-f] [--template=<file>] [--type=<type>] [file]|[<pattern>...]"
 
 declare -a targets
 declare -a untracked_targets

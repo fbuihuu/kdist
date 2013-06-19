@@ -2,7 +2,7 @@
 
 SUMMARY="Create a kdist project"
 
-USAGE="create [--kernel=<repository>] [--configs=<repository>] [--kdist=<repository>] <path>"
+USAGE="[--kernel=<repository>] [--configs=<repository>] [--kdist=<repository>] <path>"
 
 declare -A repositories
 declare -A default_repositories=(

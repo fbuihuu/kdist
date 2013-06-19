@@ -2,7 +2,7 @@
 
 SUMMARY="Show diff between two configs"
 
-USAGE="diff [options]
+USAGE="[options]
      ...     diff [options] <file|pattern>
      ...     diff [options] <file|pattern> <file|pattern>
 
