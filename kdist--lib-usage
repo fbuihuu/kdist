@@ -3,6 +3,7 @@
 usage__print_with_commands () {
 	local name=$1; shift
 	local cmd=$1; shift
+	local sep=$1; shift
 
 	warn "Usage: $cmd $USAGE"
 	if test $# -eq 0; then
@@ -14,8 +15,8 @@ usage__print_with_commands () {
 	echo -e "\nThe $name commands are:\n"
 
 	for s; do
-		eval $(grep ^SUMMARY= $s)
-		printf "  %-15s  %s\n" "${s##*-}" "$SUMMARY"
+		eval $(grep -m1 ^SUMMARY= $s)
+		printf "  %-15s  %s\n" "${s#*$sep}" "$SUMMARY"
 	done
 	echo
 	echo "See '$cmd <command> --help' for more information on a specific command."
@@ -30,7 +31,7 @@ usage__kdist () {
 		esac
 		list+="$s "
 	done
-	usage__print_with_commands kdist kdist $list
+	usage__print_with_commands kdist kdist "-" $list
 }
 
 usage__command () {
@@ -42,7 +43,7 @@ usage__command () {
 		esac
 		list+="$s "
 	done
-	usage__print_with_commands $kdist_command "kdist $kdist_command" $list
+	usage__print_with_commands $kdist_command "kdist $kdist_command" "--" $list
 }
 
 usage__subcommand () {
