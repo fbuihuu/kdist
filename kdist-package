@@ -281,4 +281,4 @@ done
 
 kdist_subcommand=$1
 shift
-kdist__run_handler "$@"
+kdist__run_subcommand "$@"

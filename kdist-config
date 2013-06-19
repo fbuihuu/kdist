@@ -241,4 +241,4 @@ config__restore_repository () {
 	cd - >/dev/null
 }
 
-kdist__run_handler "$@"
+kdist__run_subcommand "$@"

@@ -60,7 +60,7 @@ while
 		exit ;;
 	*,--no-pager)
 		use_pager=no ;;
-	*,-*|0,*)
+	*,-*)
 		kdist__usage
 		exit 1 ;;
 	*)
@@ -72,4 +72,4 @@ done
 
 kdist_command=$1
 shift
-kdist__run_handler "$@"
+kdist__run_command "$@"

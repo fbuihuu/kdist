@@ -54,12 +54,12 @@ kdist__version() (
 	echo $KDIST_VERSION
 )
 
-kdist__run_handler () {
-	local script=kdist-$kdist_command${kdist_subcommand:+--$kdist_subcommand}
-	local path=$libexecdir/$script
+__run_script () {
+	local path=$libexecdir/$1
 
-	if ! test -r $path
-	then
+	shift
+
+	if ! test -r $path; then
 		case $KDIST_RESTRICTED_MODE in
 		yes)	hint=" (restricted mode)" ;;
 		no)	hint= ;;
@@ -67,19 +67,29 @@ kdist__run_handler () {
 		die "'${kdist_subcommand:-$kdist_command}': command not found$hint."
 	fi
 
-	case $kdist_command,$kdist_subcommand in
-	log,*|whatchanged,*)	: ${use_pager:=yes} ;;
-	config,diff)		: ${use_pager:=yes} ;;
-	release,list)		: ${use_pager:=yes} ;;
+	case $use_pager in
+	yes)	source $path "$@" | kdist__pager ;; # pipefail is set by default
+	*)	source $path "$@"
+	esac
+}
+
+kdist__run_command () {
+	case $kdist_command in
+	log|whatchanged)	: ${use_pager:=yes} ;;
+	'')			kdist__usage ;;
 	esac
 
-	case $use_pager in
-	yes)
-		# pipefail is set by default
-		source $path "$@" | kdist__pager ;;
-	*)
-		source $path "$@"
+	__run_script kdist-$kdist_command "$@"
+}
+
+kdist__run_subcommand () {
+	case $kdist_command,$kdist_subcommand in
+	config,diff)		: ${use_pager:=yes} ;;
+	release,list)		: ${use_pager:=yes} ;;
+	*,)			kdist__usage ;;
 	esac
+
+	__run_script kdist-$kdist_command--$kdist_subcommand "$@"
 }
 
 kdist__pager() {
