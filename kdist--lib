@@ -67,9 +67,11 @@ __run_script () {
 		die "'${kdist_subcommand:-$kdist_command}': command not found$hint."
 	fi
 
+	# The ( ) construct here is used to workaround a bash 4.2 bug:
+	# it's used to make sure that trap handlers are called.
 	case $use_pager in
-	yes)	source $path "$@" | kdist__pager ;; # pipefail is set by default
-	*)	source $path "$@"
+	yes)	( source $path "$@" ) | kdist__pager ;; # pipefail is set by default
+	*)	  source $path "$@"
 	esac
 }
 
