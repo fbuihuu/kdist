@@ -233,10 +233,6 @@ kdist__make_tag () {
 	sed -re "s/v(3\.[[:digit:]]+)(\.0)(.*)/v\1\3/" -e "s/.*/&${1:+-$1}/"
 }
 
-version__is_released () {
-	expr $1 : ".*-\([1-9][0-9]\+\)" >/dev/null
-}
-
 #
 # Include all other libs now
 #
