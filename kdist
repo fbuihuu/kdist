@@ -14,7 +14,7 @@ set -o pipefail
 # Subcommands may need to invoke again kdist, be sure that the same
 # version is used.
 #
-__kdist=$0
+__kdist=$(readlink -f $0)
 kdist () {
 	$__kdist "$@"
 }
