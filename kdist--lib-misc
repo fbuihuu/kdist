@@ -44,3 +44,43 @@ runtime__distribution () {
 	fi
 	warn "/etc/os-release is missing."
 }
+
+#
+# Helpers for pattern matchings. A list of patterns can be provided
+# and used later to check if a string matches any patterns already
+# registered. If the pattern is a fixed string and results in a match,
+# then this pattern is removed from the list.
+#
+declare -a __pattern_list
+
+pattern__add () {
+	__pattern_list+=("$@")
+}
+
+# Process first fixed string patterns so they can be removed from the
+# list even if a pattern matches too.
+pattern__has_match () {
+	local string=$1 i p
+
+	# fixed match ?
+	for i in ${!__pattern_list[*]}; do
+		p=${__pattern_list[i]}
+		if test "$string" = "$p"; then
+			echo "@@@@@ removing pattern '$p'"
+			unset "__pattern_list[$i]"
+			return 0
+		fi
+	done
+
+	# pattern match ?
+	for p in "${__pattern_list[@]}"; do
+		if [[ "$string" = $p ]]; then
+			return 0
+		fi
+	done
+	return 1
+}
+
+pattern__is_empty () {
+	test ${#__pattern_list[*]} -eq 0
+}
