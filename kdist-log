@@ -54,6 +54,9 @@ esac
 
 kdist__cd_topdir
 
+git rev-parse --verify $until^{} 2>/dev/null ||
+die "revision '$until' is invalid."
+
 if test -z "$since"; then
 	since=$(release__get_parent $until) ||
 	die "kdist-log failed to retrieve a parent release."
