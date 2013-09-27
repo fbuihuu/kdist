@@ -2,12 +2,13 @@
 
 SUMMARY="List commits which fix known bugs"
 
-USAGE="[-n<number>|--max-count=<number>] [--format=name|short|medium|compact|full|format:<fmt>] [git-rev-list options] <commit>..."
+USAGE="[-n<number>|--max-count=<number>] [--format=name|short|medium|compact|full|format:<fmt>] [--cherry-pick|--cherry-mark] <commit>..."
 
 declare -a gitopts
 
 format=short
 max_count= # no limit
+print_mark=false
 
 while :
 do
@@ -24,6 +25,12 @@ do
 		max_count=${1#-n} ;;
 	--max-count=*)
 		max_count=${1#--max-count=} ;;
+	--cherry-pick)
+		gitopts+=(--cherry-pick --left-right)
+		print_mark=true ;;
+	--cherry-mark)
+		gitopts+=(--cherry-mark --left-right)
+		print_mark=true ;;
 	--)
 		break ;;
 	-*)
@@ -42,25 +49,36 @@ kdist__cd_repository kernel
 
 # Pretty print a BUG initially found by bug__query_db()
 bug_log__pretty_print () {
-	local commit=$1 id
-	shift
+	local mark=$1 commit=$2 id
+	shift 2
+
+	if $print_mark; then
+		# use cherry marks which are nicer IMO.
+		case $mark in
+		'>')	mark='+' ;;
+		'<')	mark='-' ;;
+		esac
+	else
+		mark=
+	fi
 
 	case $format in
 	name)
-		for id; do echo $id; done ;;
+		for id; do echo $mark $id; done ;;
 	short)
-		echo $commit $* ;;
+		echo $mark $commit $* ;;
 	medium)
 		bug_db__query_by_id $1
-		echo $commit $bug_sha1 $* ;;
+		echo $mark $commit $bug_sha1 $* ;;
 	compact|full)
 		test -z "$__pretty_print_first_call" &&
 		__pretty_print_first_call=dummy ||
 		echo
 
-		echo commit $commit
+		echo commit $mark $commit
 		kdist --no-pager bug show --format=$format $* ;;
 	*)
+		# mark is not shown in this case.
 		kdist --no-pager bug show --format="$format" $* ;;
 	esac
 
@@ -79,66 +97,53 @@ trap cleanup_on_exit 0
 tmpfile=$(mktemp)
 
 #
-# The folling parses commits that are known to not be reachable by
-# 'master'. Typically it contains commits that are only in stable
-# branches. In this case and if the commit is a fix, then the policy
-# of stable trees want the fix to hit first the mainline repo. We're
-# looking for a pattern that helps us to retrieve this equivalent
-# upstream commit, since BUGs mentions the latter.
+# We need to treat mainline commits differently than others. Indeed we
+# don't wan't to parse the commit message for mainline commits because
+# it's useless (since they use annotations) but more important they
+# sometime points to another (mainline) commit for some reasons. See
+# bc909d9ddbf7778371e36a651d6e4194b1cc7d4c for example, which uses the
+# pattern to point to another commit that introduces a bug that the
+# given commit fixes.
+#
+# Therefore we need to figure out (quickly) which set of commits is
+# part of mainline or not. To do so, we first generate the list of the
+# commits from the given rev spec which are not in mainline and this
+# list is used after to detect if a commit is part of mainline or not.
+#
+
 #
 # Note: this assumes that 'master' is the mainline branch.
 #
 upstream=master
 
-# assuming that the number of commits is limited for this range.
-git rev-list --no-merges "${gitopts[@]}" "$@" ^${upstream} >$tmpfile ||
+#
+# Generate the list of the local commits and store them in a hash
+# table.
+#
+declare -A local_commits
+
+git log --no-merges --format=format:"%H" "$@" ^$upstream >$tmpfile ||
 exit
 
-while read rev
-do
-	ids=$(bug_db__query_by_rev $rev) &&
-	bug_log__pretty_print $rev $ids
-
+while read rev; do
+	local_commits[$rev]=1
 done <$tmpfile
 
 #
-# Now parse the commits which are in upstream only.
-#
-# No more need to find out the upstream equivalent since those commits
-# are in mainline. The split is not done to speed up the process
-# (although it might do) but to avoid to be fooled by some commits
-# which use the pattern to point to another commit for some
-# reasons. See bc909d9ddbf7778371e36a651d6e4194b1cc7d4c for example,
-# which uses the pattern to point out another commit that introduce a
-# bug that the given commit fixes.
-#
-# The following find the intersection with the passed range(s) and
-# master. git-rev-parse is used to convert any range specifications
-# into the form:
-#                   p1 p2... ^n1 ^n2...
-#              or   p1 p2... --not n1 n2...
-#
-# with pX the positive revs and nX the negative revs.
-#
-positives=$(git rev-parse "$@" | grep -v '^\^')
-negatives=$(git rev-parse "$@" | grep '^\^')
-
-#
-# The set of commits reachable from both 'positives' and master is
-# given by $(git merge-base --all master $positives).
-#
-# It relies on the property that $(git merge-base --all master A1 A2...)
-# shows the merge bases of master with a hypothetical merge of A1, A2...
+# Now generate the list of all commits specified by the given rev spec
+# and process mainline commits differently.
 #
 git log --no-merges "${gitopts[@]}"				\
 	--notes=$KDIST_BUG_NOTES_REF				\
-	--pretty="format:%H %N"					\
-	$(git merge-base --all $upstream $positives) $negatives >$tmpfile ||
-exit
-
-while read rev ids; do
-	case $ids in
-	'')	continue ;;
-	*)	bug_log__pretty_print $rev $ids
-	esac
-done <$tmpfile
+	--pretty=format:"%m %H %N" "$@" | sed -e '/^$/d' |	\
+{
+	while read mark rev ids; do
+		if test -z "$ids"; then
+			test ${local_commits[$rev]} &&
+			ids=$(bug_db__query_by_rev $rev)
+		fi
+		if test -n "$ids"; then
+			bug_log__pretty_print "$mark" $rev $ids
+		fi
+	done
+}
