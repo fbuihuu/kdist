@@ -89,15 +89,14 @@ log_bugs () {
 	s=$(module__get_sha1 $since kernel) ||
 	return
 
-	# FIXME: we probably need to introduce a new command: kdist bug diff...
-	cves="$(kdist bug log --cherry-pick --right-only --no-merges --format=short $s...$u)"
-	test -z "$cves" &&
+	bugs="$(kdist bug log --cherry-pick --format=short $s...$u)"
+	test -z "$bugs" &&
 	return
 
-	printf "* Kernel CVE fixed since $since: (%d)\n" $(echo "$cves" | wc -l)
+	printf "* Kernel bugs fixed since $since: (%d)\n" $(echo "$bugs" | wc -l)
 	while read line; do
 		echo "  $line"
-	done <<< "$cves"
+	done <<< "$bugs"
 }
 
 log_configs () {
