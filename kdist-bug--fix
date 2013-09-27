@@ -95,10 +95,13 @@ elif ! $bug_is_mainlined && ! $is_sha1_mainlined; then
 	fi
 fi
 
-bug_db__register_fix $sha1 $id
+bug_db__register_fix $sha1 $id ||
+exit
 
 if $do_updatedb; then
 	bug_sha1=$sha1
 	bug_is_mainlined=$is_sha1_mainlined
-	bug_db__update $id sha1
+	bug_db__update $id sha1 || exit
 fi
+
+say "Hint: don't forget to push your new bug annotations"
