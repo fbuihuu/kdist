@@ -64,7 +64,7 @@ bug_import__update_one () {
 		# since ?
 		if bug_import__update_notes; then
 			say "Updating   $id (notes)"
-			stat_update+=1
+			stat_updated+=1
 		else
 			say "Skipping   $id (no changes)"
 		fi ;;
@@ -85,7 +85,7 @@ bug_import__update_one () {
 		# let kdist-bug--fix deals with all possible cases
 		if kdist bug fix -q $id $sha1 2>/dev/null; then
 			echo "Updating      $id (fix in mainline)"
-			stat_update+=1
+			stat_updated+=1
 		else
 			echo "Skipping fix  $id (not good enough)"
 		fi
