@@ -184,3 +184,8 @@ echo "Number of bug processed  : $stat_processed"
 echo "Number of bug imported   : $stat_imported"
 echo "Number of bug updated    : $stat_updated"
 echo "Number of warnings:      : $stat_warnings"
+
+if test $stat_imported -gt 0 || test $stat_updated -gt 0; then
+	echo
+	echo "Hint: you may need to push your new bug annotations."
+fi
