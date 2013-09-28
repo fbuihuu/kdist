@@ -71,7 +71,7 @@ bug_import__update_one () {
 	*,'')
 		# it becomes resolved, update it
 		stat_updated+=1
-		echo "Updating  $id (fix available)"
+		echo "Updating   $id (fix available)"
 		kdist bug fix -q $id $sha1 || exit ;;
 	'',*)
 		# it would become unresolved, warn.
@@ -84,10 +84,10 @@ bug_import__update_one () {
 	*,*)
 		# let kdist-bug--fix deals with all possible cases
 		if kdist bug fix -q $id $sha1 2>/dev/null; then
-			echo "Updating      $id (fix in mainline)"
+			echo "Updating   $id (fix in mainline)"
 			stat_updated+=1
 		else
-			echo "Skipping fix  $id (not good enough)"
+			echo "Skipping   $id (fix not good enough)"
 		fi
 	esac
 }
