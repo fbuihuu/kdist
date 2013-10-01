@@ -13,7 +13,7 @@ ExclusiveArch:		%{exclusive}
 BuildRoot:		%{_tmppath}/%{name}-%{version}-root
 @RPM_SOURCES@
 Requires:		kernel-firmware
-Requires(pre):		bootloader-utils
+Requires(pre):		run-parts
 Requires(pre):		dracut
 Requires(pre):		module-init-tools
 BuildRequires:		module-init-tools
