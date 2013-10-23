@@ -135,10 +135,10 @@ done <$tmpfile
 #
 git log --no-merges "${gitopts[@]}"				\
 	--notes=$KDIST_BUG_NOTES_REF				\
-	--pretty=format:"%m %H %N" "$@" | sed -e '/^$/d' |	\
+	--pretty=format:"%m %H" "$@" | sed -e '/^$/d' |	\
 {
-	while read mark rev ids; do
-		if test -z "$ids"; then
+	while read mark rev; do
+		if ! ids=$(__git_notes show $rev 2>/dev/null); then
 			test ${local_commits[$rev]} &&
 			ids=$(bug_db__query_by_rev $rev)
 		fi
