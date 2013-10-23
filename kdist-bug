@@ -2,73 +2,8 @@
 
 SUMMARY="Track your BUGs"
 
-USAGE="--init
-                 [--force] <command> [<args>]"
+USAGE="[--force] <command> [<args>]"
 
-KDIST_BUG_NOTES_REF=refs/notes/kdist/bugs
-
-bug__init () {
-	local ret
-
-	kdist__cd_repository kernel
-
-	#
-	# Always configure kernel git repository for bugs tracking
-	# even if this kernel doesn't track any bugs.
-	#
-	# We don't use GIT_NOTES_REWRITE_REF since the user can use
-	# plain git commands such as git-rebase,
-	#
-	# For now, we don't need to deal with notes rewriting mode since we
-	# normally don't amend commits with notes.
-	#
-	git config notes.rewriteRef $KDIST_BUG_NOTES_REF
-
-	#
-	# If the notes ref is missing that means either we're creating
-	# a new project or the remote has none.
-	#
-	if ! git show-ref -q --verify $KDIST_BUG_NOTES_REF; then
-		git ls-remote --exit-code origin $KDIST_BUG_NOTES_REF >/dev/null
-		case $? in
-		0)
-			warn "Fetching bugs annotations from kernel repository..."
-			git fetch -q origin $KDIST_BUG_NOTES_REF:$KDIST_BUG_NOTES_REF ;;
-		2)
-			# both have none, fine.
-			true ;;
-		*)
-			false ;;
-		esac || {
-			warn "Failed to fetch bug annotations from remote. Most of the"
-			warn "kdist bug commands won't work properly and will fail to"
-			warn "report bug fixes. You should try to fix that."
-		}
-	else
-		git ls-remote --exit-code origin $KDIST_BUG_NOTES_REF >/dev/null
-		case $? in
-		2)
-			# remote has no notes
-			warn "Origin is missing the annotations you're currently having."
-			warn "Don't forget to push your bug annotations, you can try:"
-			warn
-			warn "  git push origin $KDIST_BUG_NOTES_REF:$KDIST_BUG_NOTES_REF" ;;
-		0)
-			# check if we need merge or update
-			warn "Trying to update your bug annotations..."
-			git fetch -q origin $KDIST_BUG_NOTES_REF:refs/notes/kdist/scratch &&
-			git notes --ref=$KDIST_BUG_NOTES_REF merge -v kdist/scratch ;;
-		*)
-			# failed to contact remote, this isn't critival.
-			true ;;
-		esac
-	fi
-	ret=$?
-	# clean up unconditionally the temporary ref used for notes merging.
-	git update-ref -d refs/notes/kdist/scratch
-	cd - >/dev/null
-	return $ret
-}
 
 #
 # init is kept as an option (not a command) because it's not intended
@@ -78,7 +13,6 @@ force=false
 
 while
 	case $1 in
-	--init)		bug__init; exit ;;
 	--force)	force=true ;;
 	-*)		kdist__usage ;;
 	*)		break
@@ -91,34 +25,20 @@ kdist_subcommand=$1
 shift
 
 bug_db__path () {
-	echo $(kdist__get_repository)/bugs/data/$1
+	echo $(kdist__get_repository bugs)/data/$1
 }
 
+bug_db__rev_path () {
+	echo $(kdist__get_repository bugs)/revisions/${1::2}/${1:2}
+}
+mkdir -p $(bug_db__rev_path)
+
 bug_db__check () {
-	test -d $(kdist__get_repository)/bugs || {
+	test -d $(kdist__get_repository bugs) || {
 		warn "You don't seem to have any imported bugs in your project."
 		warn "Try to import some with: 'kdist bug import' command."
 		exit
 	}
-
-	kdist__cd_repository kernel
-
-	#
-	# Let bug__init() handles the bug annotations retrieval if
-	# needed.
-	#
-	# If the notes ref exists, we'll check later if it needs
-	# merging.
-	#
-	if ! git show-ref -q --verify $KDIST_BUG_NOTES_REF; then
-		if ! bug__init; then
-			if ! $force; then
-				warn "Use '--force' to proceed."
-				exit
-			fi
-		fi
-	fi
-	cd - >/dev/null
 }
 
 bug_db__insert () {
@@ -136,14 +56,13 @@ bug_db__insert () {
 	return 0
 }
 
-bug_db_all_fields="url sha1 flags since notes"
+bug_db_all_fields="url flags since notes"
 
 __reset_bug_queried_values () {
 	for f in $bug_db_all_fields; do
 		eval bug_$f=
 	done
 	bug_is_ignored=false
-	bug_is_mainlined=false
 }
 
 bug_db__query_by_id () {
@@ -170,86 +89,46 @@ bug_db__query_by_id () {
 
 	case $bug_flags in
 	*I*)	bug_is_ignored=true ;;
-	*M*)	bug_is_mainlined=true ;;
 	esac
 }
 
-__git_notes () {
-	git notes --ref=$KDIST_BUG_NOTES_REF "$@" || exit
+bug_db__query_by_rev () {
+	local path=$(bug_db__rev_path $1)
+	test -f $path && cat $path
 }
 
-bug_db__register_fix () {
-	local revs=
+bug_db__resolve () {
+	local id=$1 sha1=$2
+	local path=$(bug_db__rev_path $sha1)
 
-	revs=$(bug__resolve_stable_commit $1)
-	revs=${revs:-$1}
-
-	for r in $revs; do
-		# is rev already marked ?
-		case "$(bug_db__query_by_rev $r)" in
-		*$2*)	;;
-		*)	__git_notes append -m "$2" $r
+	if test -f $path; then
+		# does 'sha1' already resolve 'id' ?
+		case "$(< $path)" in
+		*$id*)	return ;;
 		esac
-	done
+	fi
+	mkdir -p ${path%/*}
+	echo $id >>$path
 }
 
-bug_db__unregister_fix () {
-	local notes
+bug_db__unresolve () {
+	local path=$(bug_db__rev_path $2)
 
-	notes=$(__git_notes show $1 2>/dev/null) ||
-	return
-
-	__git_notes remove $1
-	echo $notes | while read id; do
-		case $id in
-		$2)	continue ;;
-		esac
-		__git_notes append -m "$id" $1
-	done
-
+	if test -f $path; then
+		sed -i "/$1/d" $path
+		test -s $path || rm -f $path
+	fi
 }
 
 # Returns all commits that is known as a fix for the passed ID.
 bug_db__find_all_fixes () {
-	kdist__cd_repository kernel
+	cd $(bug_db__rev_path)
 
-	git grep -l $1 $KDIST_BUG_NOTES_REF | while read r; do
-		echo ${r#*:} | tr -d '/'
+	grep -rl $1 | while read r; do
+		echo ${r%/*}${r#*/}
 	done
 
 	cd - >/dev/null
-}
-
-# Notes are essentially used on commits which are used as "reference"
-# for a fix. Stable commits are usually not in this case since they
-# points to upstream commits. Well sometimes this pointer is missing
-# (it's a mistake) and the stable commit becomes the reference.
-bug_db__query_by_rev () {
-	local notes m n
-
-	#
-	# commits not part of mainline are sometimes marked as fixes
-	# with git notes. It's the case when we have a 'local' fix
-	# which has not been mainlined yet (hence not in stable too).
-	#
-	notes=$(__git_notes show $1 2>/dev/null) || {
-		#
-		# Maybe a stable commit which points to a resolved
-		# commit in mainline.
-		#
-		for m in $(bug__resolve_stable_commit $1); do
-			n=$(__git_notes show $m 2>/dev/null) &&
-			notes+="$n "
-		done
-		# strip spaces
-		notes=$(echo $notes)
-	}
-	test -z "$notes" && return 1
-
-	# Debug: trap inconsistent DB state vs git notes
-	bug_db__list $notes >/dev/null ||
-	bug "commit $1 has a note pointing to an unexistent bug ID."
-	echo $notes
 }
 
 bug_db__sanitize_notes () {
@@ -281,11 +160,7 @@ bug_db__update () {
 		# update it.
 		bug_flags=
 		$bug_is_ignored   && bug_flags+=I
-		$bug_is_mainlined && bug_flags+=M
 		val=$bug_flags ;;
-	sha1)
-		# caller must keep bug_is_mainlined updated
-		bug_db__update $id flags ;;
 	esac
 
 	test -z "$val" &&
@@ -339,8 +214,11 @@ bug_db__list () (
 )
 
 #
-# Scan the commit body in order to retrieve the corresponding
-# upstream commit if the commit is part of a stable branch.
+# Scan the commit body in order to retrieve the corresponding upstream
+# commit if the commit is part of a stable branch.
+#
+# It usually returns one commit but sometimes a fix can be splitted by
+# several a set of commits.
 #
 _x40='[[:xdigit:]][[:xdigit:]][[:xdigit:]][[:xdigit:]][[:xdigit:]]'
 _x40="$_x40$_x40$_x40$_x40$_x40$_x40$_x40$_x40"

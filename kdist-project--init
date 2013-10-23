@@ -88,10 +88,6 @@ exit
 kdist__check_project . ||
 bug "Failed to verify the project's layout."
 
-# Initialize bug tracking infrastructure if needed.
-kdist bug --init ||
-exit
-
 # At this point errors are no more fatal.
 trap - 0
 

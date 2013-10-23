@@ -45,8 +45,11 @@ bug_import__insert_one () {
 	'')
 		say "Importing  $id (unresolved)" ;;
 	*)
-		say "Importing  $id (fixed)"
-		kdist bug fix -q $id $sha1 || exit ;;
+		$is_mainlined &&
+		say "Importing  $id (with mainlined fix)" ||
+		say "Importing  $id (with remote fix)"
+		opt=$($is_mainlined && echo --in-mainline || echo --not-in-mainline)
+		kdist bug fix $opt -q $id $sha1 || exit ;;
 	esac
 
 	stat_imported+=1
@@ -57,38 +60,38 @@ bug_import__update_one () {
 	test "$bug_url" != "$url" &&
 	bug_db__update $id url
 
-	# handle update cases
-	case $sha1,$bug_sha1 in
-	'','')
+	case $sha1 in
+	'')
 		# nothing change, maybe some notes has been added
 		# since ?
-		if bug_import__update_notes; then
-			say "Updating   $id (notes)"
-			stat_updated+=1
-		else
-			say "Skipping   $id (no changes)"
+		if test -z "$(bug_db__find_all_fixes $id)"; then
+			if bug_import__update_notes; then
+				echo "Updating   $id (notes)"
+				stat_updated+=1
+			else
+				say "Skipping   $id (no changes)"
+			fi
 		fi ;;
-	*,'')
-		# it becomes resolved, update it
-		stat_updated+=1
-		echo "Updating   $id (fix available)"
-		kdist bug fix -q $id $sha1 || exit ;;
-	'',*)
-		# it would become unresolved, warn.
-		stat_warnings+=1
-		warn "Ignoring entry for $id (would make it unresolved)" ;;
-	*,$sha1)
-		# we don't really care about notes since the fix is
-		# still the same.
-		say "Skipping   $id (no changes)" ;;
-	*,*)
+	*)
+		opt=$($is_mainlined && echo --in-mainline || echo --not-in-mainline)
+
 		# let kdist-bug--fix deals with all possible cases
-		if kdist bug fix -q $id $sha1 2>/dev/null; then
-			echo "Updating   $id (fix in mainline)"
-			stat_updated+=1
-		else
-			echo "Skipping   $id (fix not good enough)"
-		fi
+		kdist bug fix $opt -q $id $sha1 2>/dev/null
+		case $? in
+		0)
+			$is_mainlined &&
+			echo "Resolving  $id (with mainlined fix)" ||
+			echo "Resolving  $id (with remote fix)"
+			stat_updated+=1 ;;
+		1)
+			# we don't really care about notes since the fix is
+			# still the same.
+			say "Skipping   $id (no changes)" ;;
+		*)
+			# unhandled error: call it again but unmuted
+			kdist bug fix $opt -q $id $sha1
+			exit
+		esac
 	esac
 }
 
@@ -184,8 +187,3 @@ echo "Number of bug processed  : $stat_processed"
 echo "Number of bug imported   : $stat_imported"
 echo "Number of bug updated    : $stat_updated"
 echo "Number of warnings:      : $stat_warnings"
-
-if test $stat_imported -gt 0 || test $stat_updated -gt 0; then
-	echo
-	echo "Hint: you may need to push your new bug annotations."
-fi

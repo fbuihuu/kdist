@@ -2,7 +2,7 @@
 
 # This is hot path, try to avoid any process forks here,
 cve_import__parse_reference () {
-	local ref=$1 prev=
+	local ref=$1 r
 
 	test $sha1 && $is_mainlined &&
 	return
@@ -10,25 +10,36 @@ cve_import__parse_reference () {
 	case $ref in
 	*:http://*/kernel/git/torvalds/linux-2.6.git\;a=*\;h=*) ;&
 	*:http://*/kernel/git/torvalds/linux.git\;a=*\;h=*)
-		sha1=${ref##*h=} ;;
+		r=${ref##*h=} ;;
 
 	*:http://*/kernel/git/stable/linux-*.git\;a=*\;h=*)
 		# sometimes stable tree are used to points to
 		# mainlined commits... sigh.
-		sha1=${ref##*h=} ;;
+		r=${ref##*h=} ;;
 
 	*:http://*/kernel/git/*h=*)
 		# maintainers' tree can also be used to point to a
 		# commit in mainline.
-		sha1=${ref##*h=} ;;
+		r=${ref##*h=} ;;
 
 	*:https://github.com/torvalds/linux/commit/*)
 		# a github pointer alone seems to be used to point to
 		# a stable commit.
-		sha1=${ref##*/} ;;
+		r=${ref##*/} ;;
 	esac
 
-	while test -n "$sha1"; do
+	if test $sha1 && test "$r" = "$sha1"; then
+		return
+	fi
+
+#	case $r,$sha1 in
+#	'','')	# add notes ;;
+#	'',*)   # add notes ;;
+#	*,'')	# loop ;;
+#	*,$r)	# return ;;
+#	*,*)	# 2 diff revs to fix same bug => add notes
+
+	while test -n "$r"; do
 		is_kernel_cve=true
 
 		#
@@ -36,11 +47,11 @@ cve_import__parse_reference () {
 		# such as parent sha1. It can also be a partial prefix
 		# of the full 40-byte hexadecimal commit object name.
 		#
-		sha1=$(expr "$sha1" : "\([[:xdigit:]]\+\)")
+		r=$(expr "$r" : "\([[:xdigit:]]\+\)")
 
 		# Check sha1 but update it too since it can be a
 		# partial prefix of the full name.
-		sha1=$(git rev-parse --verify -q $sha1^{}) || {
+		r=$(git rev-parse --verify -q $r^{}) || {
 			# invalid refs: just ignore them for now, and
 			# simply mark the bug as unresolved. There's
 			# still the notes that reference the wrong ref.
@@ -48,37 +59,18 @@ cve_import__parse_reference () {
 		}
 
 		# Sometime ref points to commit diff...
-		if test $(git cat-file -t $sha1^{}) != commit; then
+		if test $(git cat-file -t $r^{}) != commit; then
 			break
 		fi
 
-		git__is_ancestor master $sha1 &&
-		is_mainlined=true &&
-		return
-
-		# just loop only once.
-		if test $prev; then
-			# we shouldn't get there during the 2nd loop
-			# because it would mean that a stable commit
-			# points wrongly to a commit that's not in
-			# mainline.
-			warn "stable commit $sha1 points to a non mainline commmit."
-			break
+		if git__is_ancestor master $r; then
+			is_mainlined=true
+			sha1=$r
+			return
 		fi
-
-		#
-		# Can be a stable commit.  After resolving, if sha1 is
-		# null, it means that's a fix which is part of a
-		# stable tree but with no ref to mainline. It can
-		# happen if the fix has been fixed by rewriting a
-		# bunch of code and this changes can't be applied to
-		# stable trees.
-		#
-		prev=$sha1
-		sha1=($(bug__resolve_stable_commit $sha1))
-		sha1=${sha1[0]}
+		: ${sha1:=$r}
+		break
 	done
-	sha1=$prev
 
 	case $ref in
 	CONFIRM:http://*/kernel/git/*) ;&
@@ -126,7 +118,7 @@ cve_import__parse_header_end () {
 
 	if test -n "$mapfile"; then
 		case $sha1,${resolved_table[$id]} in
-		'',*)	sha1=${resolved_table[$id]} ;;
+		'',*)	sha1=${resolved_table[$id]}; is_mainlined=true ;;
 		*,'')	;;
 		*,$sha1);;
 		*,*)	die "$mapfile and $filename disagree on fix for $id" ;;

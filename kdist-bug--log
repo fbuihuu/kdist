@@ -49,7 +49,7 @@ kdist__cd_repository kernel
 
 # Pretty print a BUG initially found by bug__query_db()
 bug_log__pretty_print () {
-	local mark=$1 commit=$2 id
+	local mark=$1 commit=$2 id mainline=
 	shift 2
 
 	if $print_mark; then
@@ -68,8 +68,18 @@ bug_log__pretty_print () {
 	short)
 		echo $mark $commit $* ;;
 	medium)
-		bug_db__query_by_id $1
-		echo $mark $commit $bug_sha1 $* ;;
+		#
+		# Search for the corresponding mainline commit if
+		# any. If 'commit' fixes a group of bugs, then we
+		# assume that its mainline counterpart will too.
+		#
+		for fix in $(bug_db__find_all_fixes $1); do
+			if git__is_ancestor master $fix; then
+				mainline=$fix
+				break
+			fi
+		done
+		echo $mark $commit ${mainline:-$commit} $* ;;
 	compact|full)
 		test -z "$__pretty_print_first_call" &&
 		__pretty_print_first_call=dummy ||
@@ -89,27 +99,14 @@ bug_log__pretty_print () {
 
 }
 
-cleanup_on_exit () {
-	rm -f $tmpfile
-}
-trap cleanup_on_exit 0
-
-tmpfile=$(mktemp)
-
 #
 # We need to treat mainline commits differently than others. Indeed we
 # don't wan't to parse the commit message for mainline commits because
-# it's useless (since they use annotations) but more important they
-# sometime points to another (mainline) commit for some reasons. See
+# it's useless but more important they sometime points to another
+# (mainline) commit for some reasons. See
 # bc909d9ddbf7778371e36a651d6e4194b1cc7d4c for example, which uses the
 # pattern to point to another commit that introduces a bug that the
 # given commit fixes.
-#
-# Therefore we need to figure out (quickly) which set of commits is
-# part of mainline or not. To do so, we first generate the list of the
-# commits from the given rev spec which are not in mainline and this
-# list is used after to detect if a commit is part of mainline or not.
-#
 
 #
 # Note: this assumes that 'master' is the mainline branch.
@@ -117,33 +114,66 @@ tmpfile=$(mktemp)
 upstream=master
 
 #
-# Generate the list of the local commits and store them in a hash
-# table.
+# cache the path of the bug revisions db.
 #
-declare -A local_commits
-
-git log --no-merges --format=format:"%H" "$@" ^$upstream >$tmpfile ||
-exit
-
-while read rev; do
-	local_commits[$rev]=1
-done <$tmpfile
+db_rev_path=$(bug_db__rev_path)
 
 #
-# Now generate the list of all commits specified by the given rev spec
-# and process mainline commits differently.
+# Process commits which has been backported (cherry-picked) from
+# mainline first. They normally have the reference to their mainline
+# counterpart in their message. Those commits are obviously not in
+# mainline.
+#
+# This split is not only done to avoid useless commit message parsing
+# for mainline commits but sometimes mainline commits point to other
+# mainline ones, see bc909d9ddbf7778371e36a651d6e4194b1cc7d4c for an
+# example.
+#
+# Note: the loop uses an inlined version of bug_db__query_by_rev()
+# which makes the loop 10 times faster !
 #
 git log --no-merges "${gitopts[@]}"				\
-	--notes=$KDIST_BUG_NOTES_REF				\
-	--pretty=format:"%m %H" "$@" | sed -e '/^$/d' |	\
+	--pretty=format:"%m %H" "$@" ^$upstream |		\
 {
 	while read mark rev; do
-		if ! ids=$(__git_notes show $rev 2>/dev/null); then
-			test ${local_commits[$rev]} &&
-			ids=$(bug_db__query_by_rev $rev)
+		#
+		# This assumes that commits pointing to upstream fixes
+		# are more common than local fixes.
+		#
+		revs=$(bug__resolve_stable_commit $rev)
+		if test -z "$revs"; then
+			# not a backported fix, the second loop will
+			# see if it's a 'local' fix.
+			continue
 		fi
-		if test -n "$ids"; then
-			bug_log__pretty_print "$mark" $rev $ids
-		fi
+
+		ids=
+		for r in $revs; do
+			path=$db_rev_path/${r::2}/${r:2} &&
+			test -f $path &&
+			ids+="$(< $path) "
+		done
+
+		ids=$(echo $ids) &&
+		test -n "$ids" &&
+		bug_log__pretty_print "$mark" $rev $ids
+	done
+}
+
+#
+# Now process commits without parsing the commit message since commits
+# having indirect reference in their messages have been proceed
+# before.
+#
+# Note: the loop uses an inlined version of bug_db__query_by_rev()
+# which makes the loop 10 times faster !
+#
+git log --no-merges "${gitopts[@]}"				\
+	--pretty=format:"%m %H" "$@" |				\
+{
+	while read mark rev; do
+		path=$db_rev_path/${rev::2}/${rev:2} &&
+		test -f $path &&
+		bug_log__pretty_print "$mark" $rev $(< $path)
 	done
 }

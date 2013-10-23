@@ -2,9 +2,10 @@
 
 SUMMARY="Show BUG information given a BUG id"
 
-USAGE="[--help] [--format=compact|full|format:<fmt>] <bug-id>..."
+USAGE="[--help] [--decorate] [--format=compact|full|format:<fmt>] <bug-id>..."
 
 format=full
+decorate=no
 
 while :
 do
@@ -13,6 +14,8 @@ do
 		kdist__usage ;;
 	--format=*)
 		format=${1#--format=} ;;
+	--decorate)
+		decorate=yes ;;
 	-*)
 		kdist__usage ;;
 	*)
@@ -35,11 +38,14 @@ bug_show__pretty_print () {
 		test -n "$bug_since" && echo "Since:      $bug_since"
 		$bug_is_ignored      && echo "Ignored:    True"
 
-		case $bug_sha1,$bug_flags in
-		'',*)	;;
-		*,*M*)	echo "Fix:        $bug_sha1 (mainline)" ;;
-		*,*)	echo "Fix:        $bug_sha1" ;;
-		esac
+		bug_db__find_all_fixes $id | while read sha1
+		do
+			echo -n "Fix:        $sha1"
+			if test $decorate = yes; then
+				echo -n " ($(git describe --contains --abbrev=0 $sha1))"
+			fi
+			echo
+		done
 		;;&
 	full)
 		if test -n "$bug_notes"; then
@@ -59,7 +65,7 @@ bug_show__pretty_print () {
 				%)	printf '%%' ;;
 				n)	printf '\n' ;;
 				i)	printf '%s' "$id" ;;
-				h)	printf '%s' "$bug_sha1" ;;
+				h)	printf '%s' $(bug_db__find_all_fixes $id) ;;
 				s)	printf '%s' "$bug_since" ;;
 				N)	printf '%s' "$bug_notes" ;;
 				u)	printf '%s' "$bug_url" ;;
@@ -78,6 +84,9 @@ bug_show__pretty_print () {
 }
 
 declare -i i=0
+
+# needed when decorating fixes
+kdist__cd_repository kernel
 
 for id in $*
 do

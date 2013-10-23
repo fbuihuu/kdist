@@ -50,7 +50,7 @@ do
 	fi
 
 	if $only_unresolved; then
-		test $bug_sha1 && continue
+		test -n "$(bug_db__find_all_fixes $id)" && continue
 	fi
 
 	# exclude from file filter

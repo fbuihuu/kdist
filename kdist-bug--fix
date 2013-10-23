@@ -2,13 +2,21 @@
 
 SUMMARY="Mark bug as fixed"
 
-USAGE="[-q] [--replace|--duplicate|--local] <bug-id> [<rev>]"
+USAGE="[-q] [--in-mainline|--not-in-mainline] <bug-id> [<rev>]"
+
+is_mainlined_rev=
+resolve__is_mainlined_rev () {
+	if test $is_mainlined_rev; then
+		$is_mainlined_rev
+		return
+	fi
+	git__is_ancestor master $1
+}
+
 
 force=no
 verbose=yes
-local=false
-replace=false
-duplicate=false
+force_mainline_rev=false
 
 while
 	case $1 in
@@ -16,12 +24,10 @@ while
 		force=yes ;;
 	-q|--quiet)
 		verbose=false ;;
-	--local)
-		local=true ;;
-	--replace)
-		replace=true ;;
-	--duplicate)
-		duplicate=true ;;
+	--in-mainline)
+		is_mainlined_rev=true ;;
+	--not-in-mainline)
+		is_mainlined_rev=false ;;
 	-*)
 		kdist__usage ;;
 	*)
@@ -53,55 +59,76 @@ die "Unknown bug '$id'."
 $bug_is_ignored &&
 warn "warning: fixing $id which is currently ignored."
 
-# The user might be interested to mark the commit only.
-test $sha1 = "$bug_sha1" &&
-die "commit is already registered as fix for '$id'."
 
-if git__is_ancestor master $sha1; then
-	is_sha1_mainlined=true
-else
-	is_sha1_mainlined=false
-fi
+resolve__bug () {
+	case "$(bug_db__query_by_rev $1)" in
+	*$id*)
+		warn "commit $1 is already fixing '$id'."
+		exit 1
+	esac
+	bug_db__resolve $id $1
+}
 
-do_updatedb=false
+#
+# Registered commits are essentially ones which are used as
+# "reference" for a fix. Stable commits are usually not in this case
+# since they points to upstream commits. Well sometimes this pointer
+# is missing (it's a mistake) and the stable commit becomes the
+# reference.
+#
+# We can also register local commits which has not been mainlined yet
+# (hence not in stable too).
+#
+if ! resolve__is_mainlined_rev $sha1; then
+	#
+	# Parse the commit message in order to figure out if it points
+	# to a mainline commit (backported commit into stable branches
+	# for example). It's the common case, and we register the
+	# mainlined commit instead.
+	#
+	commit_set=$(bug__resolve_stable_commit $sha1)
 
-if test -z "$bug_sha1"; then
-	# simply update the DB and mark the commit
-	do_updatedb=true
-
-elif $bug_is_mainlined && $is_sha1_mainlined; then
-	if $replace; then
-		bug_db__unregister_fix $bug_sha1 $id
-		do_updatedb=true
-
-	elif ! $duplicate; then
-		warn "Bug already fixed by a commit in mainline: $bug_sha1"
-		die  "Consider using '--replace' or '--duplicate' options."
+	# If it's a local fix then register it and we're done.
+	if test -z "$commit_set"; then
+		say "Registering local commit $1 as fix for '$id'"
+		resolve__bug $sha1
+		exit 0
 	fi
 
-elif $bug_is_mainlined && ! $is_sha1_mainlined; then
-	if ! $local; then
-		warn "$id is already fixed by commit $bug_sha1 in mailine."
-		die  "Consider using '--local' to remember this commit as fix."
-	fi
+	# Make sure that new commits are really part of mainline.
+	for r in $commit_set; do
+		git__is_ancestor master $r &&
+		continue
 
-elif ! $bug_is_mainlined && $is_sha1_mainlined; then
-	do_updatedb=true
-
-elif ! $bug_is_mainlined && ! $is_sha1_mainlined; then
-	if ! $duplicate; then
-		warn "$id is already fixed by local commit $bug_sha1"
-		die  "Consider using '--duplicate' to remember this commit as well."
-	fi
+		warn "stable commit $sha1 points to a non mainline commmit $r."
+		exit 6
+	done
 fi
 
-bug_db__register_fix $sha1 $id ||
-exit
+commit_set=${commit_set:-$sha1}
 
-if $do_updatedb; then
-	bug_sha1=$sha1
-	bug_is_mainlined=$is_sha1_mainlined
-	bug_db__update $id sha1 || exit
-fi
+#
+# At this point, we're going to register a mainline (set of)
+# commmit(s). Check that no (set of) mainlined commit is already
+# registered for that bug.
+#
+bug_db__find_all_fixes $id | while read r
+do
+	# is r is part of commit_set ?
+	case $commit_set in
+	*$r*)
+		warn "commit $sha1 is already a fix for '$id'."
+		exit 1
+	esac
 
-say "Hint: don't forget to push your new bug annotations"
+	git__is_ancestor master $r && {
+		warn "commit $r in *mainline* already fixes $id, aborting."
+		exit 7
+	}
+done || exit
+
+
+for r in $commit_set; do
+	say "Registering mainline commit $r as fix for '$id'"
+	resolve__bug $r
+done
