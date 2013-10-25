@@ -49,7 +49,7 @@ bug_import__insert_one () {
 		say "Importing  $id (with mainlined fix)" ||
 		say "Importing  $id (with remote fix)"
 		opt=$($is_mainlined && echo --in-mainline || echo --not-in-mainline)
-		kdist bug fix $opt -q $id $sha1 || exit ;;
+		kdist bug resolve $opt -q $id $sha1 || exit ;;
 	esac
 
 	stat_imported+=1
@@ -76,7 +76,7 @@ bug_import__update_one () {
 		opt=$($is_mainlined && echo --in-mainline || echo --not-in-mainline)
 
 		# let kdist-bug--fix deals with all possible cases
-		kdist bug fix $opt -q $id $sha1 2>/dev/null
+		kdist bug resolve $opt -q $id $sha1 2>/dev/null
 		case $? in
 		0)
 			$is_mainlined &&
@@ -89,7 +89,7 @@ bug_import__update_one () {
 			say "Skipping   $id (no changes)" ;;
 		*)
 			# unhandled error: call it again but unmuted
-			kdist bug fix $opt -q $id $sha1
+			kdist bug resolve $opt -q $id $sha1
 			exit
 		esac
 	esac
