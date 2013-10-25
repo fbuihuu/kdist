@@ -139,14 +139,12 @@ kdist__check_project () {
 	[ -d "$1"/.git ] && [ -f "$1"/.gitmodules ]
 }
 
-kdist__get_topdir () (
-	until kdist__check_project .
-	do
-		cd .. && git__cd_topdir ||
-		die "No kdist project found."
-	done
-	pwd
-)
+
+# See below for its initialisation
+__project_topdir=
+kdist__get_topdir () {
+	echo "$__project_topdir"
+}
 
 kdist__get_repository () {
 	p=$(kdist__get_topdir) &&
@@ -247,3 +245,15 @@ for lib in $(ls -B $libexecdir/kdist--lib-* 2>/dev/null); do
 	esac
 	source $lib || exit
 done
+
+#
+# Now lib helpers can be used
+#
+__project_topdir=$(
+	until kdist__check_project .
+	do
+		cd .. && git__cd_topdir ||
+		die "No kdist project found."
+	done
+	pwd
+)
