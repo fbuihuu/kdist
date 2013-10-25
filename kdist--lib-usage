@@ -47,7 +47,23 @@ usage__command () {
 }
 
 usage__subcommand () {
-	warn "Usage: kdist $kdist_command $kdist_subcommand $USAGE"
+	local header="Usage: "
+	local details=false
+
+	echo "$USAGE" | while IFS= read line; do
+		#
+		# An empty line starts the beginning of the option
+		# details. The sub command prefix name is not used
+		# anymore.
+		#
+		if test -z "$line" || $details; then
+			details=true
+			warn "$line"
+			continue
+		fi
+		warn "${header}kdist $kdist_command $kdist_subcommand $line"
+		header="       "
+	done
 }
 
 kdist__usage () {
