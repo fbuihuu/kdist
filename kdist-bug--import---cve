@@ -32,13 +32,6 @@ cve_import__parse_reference () {
 		return
 	fi
 
-#	case $r,$sha1 in
-#	'','')	# add notes ;;
-#	'',*)   # add notes ;;
-#	*,'')	# loop ;;
-#	*,$r)	# return ;;
-#	*,*)	# 2 diff revs to fix same bug => add notes
-
 	while test -n "$r"; do
 		is_kernel_cve=true
 
@@ -185,11 +178,11 @@ while read line; do
 		id=${line#Name: }
 		if ! pattern__is_empty; then
 			if pattern__has_match "$id"; then
-				is_kernel_cve=true
+				is_kernel_cve=$force
+				pattern__is_empty && terminate=true
 			else
 				skip=true
 			fi
-			pattern__is_empty && terminate=true
 		fi ;;
 	URL:\ *)
 		url=${line#URL: } ;;

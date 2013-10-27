@@ -2,13 +2,14 @@
 
 SUMMARY="Import new bugs into the kdist's database."
 
-USAGE="[-v] [--map=file] cve <list.txt> [ids...]"
+USAGE="[-v] [--force] [--map=file] cve <list.txt> [ids...]"
 
 declare -i stat_total=0
 declare -i stat_imported=0
 declare -i stat_processed=0
 declare -i stat_updated=0
 declare -i stat_warnings=0
+declare -i stat_ignored=0
 
 LF='
 '
@@ -103,12 +104,19 @@ bug_import__process_one () {
 		bug_import__insert_one
 		return
 	fi
+
+	if ! $force && $bug_is_ignored; then
+		say "Skipping   $id (ignored)"
+		stat_ignored+=1
+		return
+	fi
 	bug_import__update_one
 }
 
 mapfile=
 verify_map=false
 format=
+force=false
 
 while :
 do
@@ -119,6 +127,9 @@ do
 		mapfile=${1#--map=} ;;
 	--verify-map)
 		verify_map=true ;;
+	--force)
+		# Import the given bug even if it is ignored.
+		force=true ;;
 	-*)
 		kdist__usage ;;
 	*)
@@ -142,6 +153,10 @@ die "Can't found list file."
 if test -n "$mapfile"; then
 	mapfile=$(readlink -e $mapfile) ||
 	die "Can't read mapfile."
+fi
+
+if pattern__is_empty && $force; then
+	die "You can only force import with specified (pattern) ids."
 fi
 
 #
@@ -186,4 +201,5 @@ echo "Number of bugs           : $stat_total"
 echo "Number of bug processed  : $stat_processed"
 echo "Number of bug imported   : $stat_imported"
 echo "Number of bug updated    : $stat_updated"
+echo "Number of bug ignored    : $stat_ignored"
 echo "Number of warnings:      : $stat_warnings"
