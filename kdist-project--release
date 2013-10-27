@@ -2,12 +2,22 @@
 
 SUMMARY="Create a global project release"
 
-USAGE="[--help]"
+USAGE="[--help]
+$USAGE_RELEASE_LIST"
 
-
-if test $# -gt 0; then
-	kdist__usage
-fi
+while
+	case $1 in
+	-l|--list)
+		kdist__cd_topdir
+		shift; release__list "$@"; exit ;;
+	'')
+		break ;;
+	*)
+		kdist__usage
+	esac
+do
+	shift
+done
 
 cleanup_on_exit () {
 	$cancel_commit && git reset --soft HEAD~1
@@ -18,7 +28,7 @@ tmpfile=$(mktemp)
 cancel_commit=false
 trap cleanup_on_exit 0
 
-release__project () {
+project__release () {
 	kdist__cd_repository kernel &&
 	kdist__setup_kernel_version ||
 	exit
@@ -112,4 +122,4 @@ EOF
 }
 
 
-release__project "$@"
+project__release "$@"

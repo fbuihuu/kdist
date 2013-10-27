@@ -1,6 +1,6 @@
 #! /bin/bash
 
-SUMMARY="Manage kernel and project releases"
+SUMMARY="Manage kernel"
 
 USAGE="<command> [<args>]"
 

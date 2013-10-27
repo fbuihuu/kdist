@@ -2,14 +2,24 @@
 
 SUMMARY="Create a new kernel release"
 
-USAGE="[--help]"
+USAGE="[--help]
+$USAGE_RELEASE_LIST"
 
+while
+	case $1 in
+	-l|--list)
+		kdist__cd_repository kernel
+		shift; release__list "$@"; exit ;;
+	'')
+		break ;;
+	*)
+		kdist__usage
+	esac
+do
+	shift
+done
 
-if test $# -gt 0; then
-	kdist__usage
-fi
-
-release__kernel () {
+kernel__release () {
 	local n
 	local tmpfile=$(mktemp)
 	trap "rm -f $tmpfile" 0
@@ -69,4 +79,4 @@ exit
 git__check_clean_work_tree ||
 die "You must have a clean kernel working tree."
 
-release__kernel "$@"
+kernel__release "$@"
