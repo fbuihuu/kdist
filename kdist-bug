@@ -42,45 +42,74 @@ bug_db__check () {
 }
 
 bug_db__insert () {
-	local id=$1 url="$2"
+	local id=$1
 	local path=$(bug_db__path $id)
 
 	test -f $path &&
 	bug "trying to insert already present bug $id"
 
-	mkdir -p $(dirname $path)
-	{
-		test -n "$url" && echo url=\"$url\"
-	} >$path
-
-	return 0
+	mkdir -p $(dirname $path) &&
+	touch $path &&
+	bug_url=$2 &&
+	bug_db__update $id url
 }
 
 bug_db_all_fields="url flags since notes"
 
 __reset_bug_queried_values () {
+	local f
+
 	for f in $bug_db_all_fields; do
 		eval bug_$f=
 	done
 	bug_is_ignored=false
 }
 
+LF='
+'
+
 bug_db__query_by_id () {
 	local $bug_db_all_fields
-	local id=$1
- 	local -i i=1
+	local id=$1 f= v=
 
 	__reset_bug_queried_values
 
 	test -f $(bug_db__path $id) ||
 	return
 
-	source $(bug_db__path $id) &&
-	for f in $bug_db_all_fields; do
-		# remove prefixes for multiline values
-		eval bug_$f=\"'$(echo -n "${!f}" | sed -e "2,\$s/^ //")'\"
-	done ||
-	die "bug at $(bug_db__path $id) is corrupted."
+	while IFS='' read -r line; do
+		#
+		# All fields are terminated by an empty line.
+		#
+		case $line in
+		' '*)
+			test -n "$f" ||
+			die "syntax error in $(bug_db__path $id)"
+
+			# cumulate line for current field's value
+			v+="${LF}${line# }" ;;
+		*=*)
+			test -n "$f" &&
+			die "missing value separator for field $f"
+
+			# parse a new field until empty line is met.
+			f=${line%%=*}
+			v=${line#*=}
+			;;
+		'')
+			test -n "$f" ||
+			die "only one field separator is allowed"
+
+			# field separator, skip unknown field
+			case $bug_db_all_fields in
+			*$f*)	eval bug_$f=\"'$v'\" ;;
+			esac
+			f=
+			v= ;;
+		*)
+			die "syntax error in $(bug_db__path $id)"
+		esac
+	done <$(bug_db__path "$id")
 
 	# Just in case user manually edited the bug data.
 	case $bug_since in
@@ -143,11 +172,9 @@ bug_db__update () {
 	val=${!val}
 
 	#
-	# Fields are using double quotes. Try first to delete field
-	# with a single line value then try a multiple lines value.
+	# Try first to delete this field
 	#
-	sed -i -e "/^$field=\".*[^\]\"/d" $(bug_db__path $id)
-	sed -i -e "/^$field=\"/,/^\"/d" $(bug_db__path $id)
+	sed -i -e "/^$field=/,/^$/d" $(bug_db__path $id)
 
 	# sanitize some fields.
 	case $field in
@@ -166,19 +193,15 @@ bug_db__update () {
 	test -z "$val" &&
 	return
 
-	# Since the bug file is sourced to read the values, escape
-	# special characters that the shell still interpretes when
-	# enclosed in double quotes: $, `, \, ".
-	val=$(echo -n "$val" | sed -r 's/([$\`"])/\\&/g')
-
 	case $(echo "$val" | wc -l) in
 	1)
-		echo "$field=\"$val\"" ;;
+		echo "$field=$val"
+		echo ;;
 	*)
 		# add prefix for multiline values
-		echo -n "$field=\""
+		echo -n $field=
 		echo "$val" | sed -e '2,$s/^/ /'
-		echo \" ;;
+		echo ;;
 	esac >>$(bug_db__path $id)
 }
 
