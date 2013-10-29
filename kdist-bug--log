@@ -26,11 +26,9 @@ do
 	--max-count=*)
 		max_count=${1#--max-count=} ;;
 	--cherry-pick)
-		gitopts+=(--cherry-pick --left-right)
-		print_mark=true ;;
+		cherry_opts="--cherry-pick --left-right" ;;
 	--cherry-mark)
-		gitopts+=(--cherry-mark --left-right)
-		print_mark=true ;;
+		cherry_opts="--cherry-mark --left-right" ;;
 	--)
 		break ;;
 	-*)
@@ -100,15 +98,6 @@ bug_log__pretty_print () {
 }
 
 #
-# We need to treat mainline commits differently than others. Indeed we
-# don't wan't to parse the commit message for mainline commits because
-# it's useless but more important they sometime points to another
-# (mainline) commit for some reasons. See
-# bc909d9ddbf7778371e36a651d6e4194b1cc7d4c for example, which uses the
-# pattern to point to another commit that introduces a bug that the
-# given commit fixes.
-
-#
 # Note: this assumes that 'master' is the mainline branch.
 #
 upstream=master
@@ -117,6 +106,38 @@ upstream=master
 # cache the path of the bug revisions db.
 #
 db_rev_path=$(bug_db__rev_path)
+
+#
+# Cherry pick mode: we need a separate case since filtering out
+# mainline commits (done by loop #1) doesn't work for revs range
+# including mainline such as "v3.5-rc1...v3.4.6".
+#
+# There's one canveat though, mainline commits are treated like others
+# one meaning that their message will be parsed too. For simplicity,
+# we do it anyway.
+#
+if test -n "$cherry_opts"; then
+	print_mark=true
+
+	git log --no-merges $cherry_opts "${gitopts[@]}"	\
+		--pretty=format:"%m %H" "$@" |			\
+	{
+		while read mark rev; do
+			ids=
+			revs=$(bug__resolve_stable_commit $rev)
+
+			for r in ${revs:-$rev}; do
+				path=$db_rev_path/${r::2}/${r:2} &&
+				test -f $path &&
+				ids+="$(< $path) "
+			done
+
+			test -n "$(echo $ids)" &&
+			bug_log__pretty_print "$mark" $rev $ids
+		done
+	}
+	return
+fi
 
 #
 # Process commits which has been backported (cherry-picked) from
@@ -154,8 +175,7 @@ git log --no-merges "${gitopts[@]}"				\
 			ids+="$(< $path) "
 		done
 
-		ids=$(echo $ids) &&
-		test -n "$ids" &&
+		test -n "$(echo $ids)" &&
 		bug_log__pretty_print "$mark" $rev $ids
 	done
 }
