@@ -12,6 +12,9 @@ cve_import__parse_reference () {
 	*:http://*/kernel/git/torvalds/linux.git\;a=*\;h=*)
 		r=${ref##*h=} ;;
 
+	*:https://*/kernel/git/torvalds/linux.git/commit/?id=*)
+		r=${ref##*id=} ;;
+
 	*:http://*/kernel/git/stable/linux-*.git\;a=*\;h=*)
 		# sometimes stable tree are used to points to
 		# mainlined commits... sigh.
