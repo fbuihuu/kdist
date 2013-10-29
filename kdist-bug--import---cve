@@ -121,7 +121,7 @@ cve_import__parse_header_end () {
 		esac
 	fi
 
-	if ! test $sha1; then
+	if ! test $sha1 && test -n "$notes_urls"; then
 		: ${notes_header:="No fixes found, these links might be helpful:"}
 		notes="${notes_header}${LF}${LF}${notes_urls}"
 	fi
