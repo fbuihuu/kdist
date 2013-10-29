@@ -120,7 +120,7 @@ if test -n "$cherry_opts"; then
 	print_mark=true
 
 	git log --no-merges $cherry_opts "${gitopts[@]}"	\
-		--pretty=format:"%m %H" "$@" |			\
+		--pretty=tformat:"%m %H" "$@" |			\
 	{
 		while read mark rev; do
 			ids=
@@ -154,7 +154,7 @@ fi
 # which makes the loop 10 times faster !
 #
 git log --no-merges "${gitopts[@]}"				\
-	--pretty=format:"%m %H" "$@" ^$upstream |		\
+	--pretty=tformat:"%m %H" "$@" ^$upstream |		\
 {
 	while read mark rev; do
 		#
@@ -189,7 +189,7 @@ git log --no-merges "${gitopts[@]}"				\
 # which makes the loop 10 times faster !
 #
 git log --no-merges "${gitopts[@]}"				\
-	--pretty=format:"%m %H" "$@" |				\
+	--pretty=tformat:"%m %H" "$@" |				\
 {
 	while read mark rev; do
 		path=$db_rev_path/${rev::2}/${rev:2} &&
