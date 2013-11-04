@@ -30,7 +30,7 @@ kernel__release () {
 	# the list.
 	#
 	base=$(kdist__make_tag)
-	last=$(kdist release list -n1 $base-\*)
+	last=$(release__list -n1 $base-\*)
 	case "$last" in
 	"")	n=1;;
 	*)	n=$((${last##*-} + 1))
