@@ -26,7 +26,7 @@ export -f kdist
 KDIST_VERSION=v0.9
 
 #
-# This path is changed during installation.
+# 'libexecdir' is changed during installation.
 #
 LIBEXECDIR=$(dirname "$__kdist")
 libexecdir=${KDIST_EXEC_PATH:-$LIBEXECDIR}
@@ -35,6 +35,7 @@ test -d "$libexecdir" || {
 	exit 1
 }
 libexecdir=$(readlink -f "$libexecdir")
+libhookdir=$(dirname "$__kdist")/templates/hooks
 
 #
 # Include all kdist libraries
