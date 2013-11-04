@@ -51,8 +51,8 @@ bug_show__pretty_print () {
 		if test -n "$bug_notes"; then
 			echo
 			echo "Notes:"
-			while read -r line; do
-				echo "    $line"
+			while IFS='' read -r line; do
+				echo "  $line"
 			done <<<"$bug_notes"
 		fi
 		;;
