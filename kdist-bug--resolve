@@ -90,7 +90,7 @@ if ! resolve__is_mainlined_rev $sha1; then
 
 	# If it's a local fix then register it and we're done.
 	if test -z "$commit_set"; then
-		say "Registering local commit $1 as fix for '$id'"
+		say "Registering local commit $sha1 as fix for '$id'"
 		resolve__bug $sha1
 		exit 0
 	fi
