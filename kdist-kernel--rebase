@@ -1,0 +1,56 @@
+#! /bin/bash
+
+SUMMARY="Forward local commits to new (stable) release"
+
+USAGE="<upstream>"
+
+test $# -ne 1 && kdist__usage
+
+upstream=$1
+
+#
+# The temporary file which stores the rewritten commit list
+#
+export KDIST_REWRITTEN_COMMIT_LIST=$(mktemp)
+
+cleanup_on_exit () {
+	rm -f $KDIST_REWRITTEN_COMMIT_LIST
+}
+trap cleanup_on_exit 0
+
+git rebase -i -p $upstream ||
+exit
+
+#
+# Now forward registered bug fixes.
+#
+echo "Propagating bug fixes to rebased branch..."
+
+declare -i stat_errors=0
+
+while read old new unused; do
+	#
+	# Calling kdist-bug--log is overkill here but the current api
+	# doesn't allow to do otherwise.
+	#
+	for id in $(kdist bug log --format=name $old~1..$old); do
+		kdist bug resolve $id $new
+		case $? in
+		1)
+			# a commit cherry-picked from mainline still
+			# not part of the stable branch: nothing wrong
+			# with that.
+			;;
+		0)
+			# a local fix has been propagated.
+			;;
+		*)
+			# other are error
+			stat_errors+=1
+		esac
+	done
+done <$KDIST_REWRITTEN_COMMIT_LIST
+
+if test $stat_errors -gt 0; then
+	warn "warning: $stat_errors error(s) occured when propagating fixes."
+fi
