@@ -57,19 +57,19 @@ case $# in
 2)
 	two=$2
 	if ! test -e "$two"; then
-		case $KDIST_RESTRICTED_MODE in
-		yes)	die "file '$two' not found." ;;
-		no)	two=$(config__resolve_files --fullpath "$2") || exit
-		esac
+		kdist__restricted_mode &&
+		die "file '$two' not found."
+		two=$(config__resolve_files --fullpath "$2") ||
+		exit
 	fi
 	;&
 1)
 	one=$1
 	if ! test -e "$one"; then
-		case $KDIST_RESTRICTED_MODE in
-		yes)	die "file '$one' not found." ;;
-		no)	one=$(config__resolve_files --fullpath "$1") || exit
-		esac
+		kdist__restricted_mode &&
+		die "file '$one' not found."
+		one=$(config__resolve_files --fullpath "$1") ||
+		exit
 	fi
 	;;
 *)
