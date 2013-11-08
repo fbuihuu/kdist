@@ -8,6 +8,19 @@ if test $# -gt 0; then
 	kdist__usage
 fi
 
+#
+# 'update' command is considered as restricted command because it
+# should be available when a super project has just been cloned and
+# kdist/ submodule is still empty.
+#
+# But other attempts to use update command outside a super project
+# managed by kdist is incorrect.
+#
+
+kdist__get_topdir >/dev/null ||
+die "Not in a kdist project."
+
+# Safe to call kdist__cd_topdir()
 kdist__cd_topdir &&
 git submodule update --init
 

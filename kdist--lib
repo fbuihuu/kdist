@@ -140,25 +140,29 @@ kdist__check_project () {
 }
 
 
-# See below for its initialisation
+# See below for its initialisation. It's left empty if we've not been
+# called inside a kdist super project.
 __project_topdir=
 kdist__get_topdir () {
+	test -n "$__project_topdir" &&
 	echo "$__project_topdir"
 }
 
 kdist__get_repository () {
 	p=$(kdist__get_topdir) &&
-	readlink -e "$p/$1" || exit
+	readlink -e "$p/$1"
 }
 
 kdist__cd_topdir () {
-	p=$(kdist__get_topdir) &&
-	cd "$p" || exit
+	p=$(kdist__get_topdir) ||
+	bug "shouldn't be used by any restricted commands."
+	cd "$p"
 }
 
 kdist__cd_repository () {
-	p=$(kdist__get_repository $1) &&
-	cd "$p" || exit
+	p=$(kdist__get_repository $1) ||
+	bug "shouldn't be used by any restricted commands."
+	cd "$p"
 }
 
 #
@@ -253,7 +257,7 @@ __project_topdir=$(
 	until kdist__check_project .
 	do
 		cd .. && git__cd_topdir ||
-		die "No kdist project found."
+		return 0
 	done
 	pwd
 )

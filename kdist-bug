@@ -34,7 +34,7 @@ bug_db__rev_path () {
 mkdir -p $(bug_db__rev_path)
 
 bug_db__check () {
-	test -d $(kdist__get_repository bugs) || {
+	kdist__get_repository bugs >/dev/null || {
 		warn "You don't seem to have any imported bugs in your project."
 		warn "Try to import some with: 'kdist bug import' command."
 		exit
