@@ -18,7 +18,13 @@ warn () {
 }
 
 bug () {
-	die "BUG in ${FUNCNAME[1]}: $@"
+	warn "BUG in ${FUNCNAME[1]}: $@"
+	warn
+	warn "calltrace:"
+	warn "=========="
+	for f in ${FUNCNAME[*]}; do
+		warn "  -> $f"
+	done
 	exit 2
 }
 
