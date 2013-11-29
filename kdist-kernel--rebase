@@ -4,8 +4,18 @@ SUMMARY="Forward local commits to new (stable) release"
 
 USAGE="<upstream>"
 
-test $# -ne 1 && kdist__usage
+while
+	case $1 in
+	-*)
+		kdist__usage ;;
+	*)
+		break
+	esac
+do
+	shift
+done
 
+test $# -ne 1 && kdist__usage
 upstream=$1
 
 #
