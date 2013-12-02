@@ -28,11 +28,14 @@ case $# in
 0)	kdist__usage ;;
 esac
 
+declare -i i=0
+
 bug_show__pretty_print () {
 	local id=$1
 
 	case $format in
 	compact|full)
+		test $i -gt 0        && echo
 		echo "Name:       $id"
 		test -n "$bug_url"   && echo "Url:        $bug_url"
 		test -n "$bug_since" && echo "Since:      $bug_since"
@@ -81,9 +84,8 @@ bug_show__pretty_print () {
 		done
 		;;
 	esac
+	i+=1
 }
-
-declare -i i=0
 
 # needed when decorating fixes
 kdist__cd_repository kernel
@@ -93,7 +95,5 @@ do
 	bug_db__query_by_id $id ||
 	exit
 
-	test $i -gt 0 && echo
 	bug_show__pretty_print $id
-	i+=1
 done
