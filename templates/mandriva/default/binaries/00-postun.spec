@@ -11,4 +11,4 @@ if test -d /etc/kernel/postun.d; then
 
 elif test -x /sbin/kernel_remove_initrd; then
 	/sbin/kernel_remove_initrd %{uname_r}
-if
+fi
