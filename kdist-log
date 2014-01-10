@@ -54,7 +54,7 @@ esac
 
 kdist__cd_topdir
 
-git rev-parse --verify $until^{} 2>/dev/null ||
+git rev-parse --verify -q $until^{} >/dev/null ||
 die "revision '$until' is invalid."
 
 if test -z "$since"; then
