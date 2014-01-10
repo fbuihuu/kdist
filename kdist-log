@@ -93,7 +93,8 @@ log_bugs () {
 	test -z "$bugs" &&
 	return
 
-	printf "* Kernel bugs fixed since $since: (%d)\n" $(echo "$bugs" | wc -l)
+	count=$(echo "$bugs" | cut -f3- -d" " | wc -w)
+	printf "* Kernel bugs fixed since $since: (%d)\n" $count
 	while read line; do
 		echo "  $line"
 	done <<< "$bugs"
