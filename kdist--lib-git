@@ -12,6 +12,10 @@ git__cd_topdir () {
 	cd "$topdir"
 }
 
+git__git_dir () {
+	git rev-parse --git-dir
+}
+
 git__describe () {
 	git describe "$@" ||
 	warn "Failed to retrieve a tag description in kernel repository."
