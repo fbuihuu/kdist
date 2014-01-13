@@ -24,3 +24,5 @@ die "Not in a kdist project."
 kdist__cd_topdir &&
 git submodule update --init
 
+# Init hooks if not aleady done.
+kdist__init_hooks

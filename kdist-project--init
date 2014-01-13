@@ -88,6 +88,9 @@ exit
 kdist__check_project . ||
 bug "Failed to verify the project's layout."
 
+# Init hooks.
+kdist__init_hooks
+
 # At this point errors are no more fatal.
 trap - 0
 

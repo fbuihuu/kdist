@@ -247,6 +247,49 @@ kdist__make_tag () {
 }
 
 #
+# Install kdist hooks. This function is used by kdist commands which
+# are used in restricted mode to initialize a project. But it should
+# be called lately once the project modules are setup and kdist hooks
+# are available.
+#
+# Since it's used by restricted mode commands, it doesn't rely on
+# helpers to retrieve project paths. Instead it assumes to be called
+# when in the project topdir.
+#
+kdist__init_hooks () {
+	local hook
+	local libhookdir=kdist/templates/hooks
+	local githookdir
+
+	kdist__check_project . ||
+	bug "hooks__init() must be called from the project's topdir."
+
+	githookdir=$(cd kernel && git__git_dir)/hooks
+
+	for hook in $(ls $libhookdir); do
+		test -x $libhookdir/$hook || continue
+
+		target=../../../../$libhookdir/$hook
+
+		if ! ls "$githookdir/$hook" >/dev/null 2>&1; then
+			ln -s $target "$githookdir" ||
+			die "Failed to install git hook at '$githookdir/$hook'."
+			continue
+		fi
+
+		# Is the symlink already installed ?
+		if test -L "$githookdir/$hook"; then
+			test "$(readlink $githookdir/$hook)" == "$target" &&
+			continue
+		fi
+
+		warn "Kernel has already a '$hook' git hook installed..."
+		warn "Aborting kdist hooks installation."
+		return
+	done
+}
+
+#
 # Include all other libs now
 #
 for lib in $(ls -B $libexecdir/kdist--lib-* 2>/dev/null); do

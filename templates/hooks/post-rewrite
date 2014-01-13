@@ -1,40 +1,20 @@
 #! /bin/bash
-
-SUMMARY="Forward local commits to new (stable) release"
-
-USAGE="<upstream>"
-
-while
-	case $1 in
-	-*)
-		kdist__usage ;;
-	*)
-		break
-	esac
-do
-	shift
-done
-
-test $# -ne 1 && kdist__usage
-upstream=$1
+#
+# This hook is used for bug tracking: if a rewritten commit is fixing
+# a bug then the resulting commit should do so too.
+#
 
 #
-# The temporary file which stores the rewritten commit list
+# Is this project tracks bugs at all ?
 #
-export KDIST_REWRITTEN_COMMIT_LIST=$(mktemp)
-
-cleanup_on_exit () {
-	rm -f $KDIST_REWRITTEN_COMMIT_LIST
-}
-trap cleanup_on_exit 0
-
-git rebase -i -p $upstream ||
-exit
+if test -z "$(kdist bug list-db 2>/dev/null | head -n1)"; then
+	exit
+fi
 
 #
 # Now forward registered bug fixes.
 #
-echo "Propagating bug fixes to rebased branch..."
+echo "[kdist] propagating potential bug fixes to rebased branch..."
 
 declare -i stat_errors=0
 
@@ -59,7 +39,7 @@ while read old new unused; do
 			stat_errors+=1
 		esac
 	done
-done <$KDIST_REWRITTEN_COMMIT_LIST
+done
 
 if test $stat_errors -gt 0; then
 	warn "warning: $stat_errors error(s) occured when propagating fixes."

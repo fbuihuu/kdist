@@ -281,26 +281,9 @@ bug__resolve_stable_commit () {
 	done
 }
 
-bug__init () {
-	local git_post_rewrite_hook
-
-	kdist__cd_repository kernel &&
-	git_post_rewrite_hook="$(git rev-parse --git-dir)/hooks/post-rewrite" &&
-	cd - >/dev/null &&
-
-	cp --update "$libhookdir/post-rewrite-hook" "$git_post_rewrite_hook" ||
-	die "Failed to install post-rewrite git hook in '$git_post_rewrite_hook'"
-
-	test -f "$git_post_rewrite_hook" ||
-	die "post-rewrite git hook is missing, aborting."
-
-	test -x "$git_post_rewrite_hook" ||
-	die "post-rewrite bit hook is missing the exec bit, aborting."
-}
 
 if test $kdist_subcommand != "import"; then
 	bug_db__check
 fi
-bug__init
 
 kdist__run_subcommand "$@"
