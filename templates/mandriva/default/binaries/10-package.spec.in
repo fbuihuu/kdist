@@ -17,6 +17,7 @@ Requires(pre):		run-parts
 Requires(pre):		dracut
 Requires(pre):		module-init-tools
 BuildRequires:		module-init-tools
+BuildRequires:		bc
 %if %no_source
 BuildRequires:		kernel-source = %{version}-%{mkrel %{source_release}}
 %endif
