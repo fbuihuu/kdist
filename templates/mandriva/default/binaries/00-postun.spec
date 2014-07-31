@@ -4,7 +4,7 @@
 # mageia systems which use drakx stuff to install new kernels.
 #
 if test -d /etc/kernel/postun.d; then
-	run-parts --verbose --exit-on-error		\
+	run-parts --verbose				\
 		--arg=%{uname_r}			\
 		--arg=/boot/vmlinuz-%{uname_r}		\
 		/etc/kernel/postun.d
