@@ -18,14 +18,18 @@ cp vmlinux %{buildroot}/vmlinux-%{uname_r}
 chmod +x %{buildroot}/vmlinux-%{uname_r}
 
 #
-# When using kernel-source package, find-debuginfo is only used to
-# install the _generated_ source code (mostly arrays of data).
-# Otherwise it installs both the source code and the generated one.
+# When the kernel-source package is used, find-debuginfo is only used
+# to install the _generated_ source code (mostly arrays of data).
+# Otherwise, find-debuginfo installs both the source code and the
+# generated one.
 #
 # In any cases, it generates the modules debug files, the module
 # symlinks and the list of the generated source files.
 #
-%__debug_install_post
+# Note: find-debuginfo is directly used so we're sure about the
+# parameters that are passed.
+#
+/usr/lib/rpm/find-debuginfo.sh %{_builddir}/%{?buildsubdir}
 %define __debug_install_post %{nil}
 
 #
