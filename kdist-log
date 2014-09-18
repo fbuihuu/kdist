@@ -121,7 +121,7 @@ log_packaging () {
 
 log_project () {
 	echo "* Project $since..$(git describe --always $until)"
-	git log --pretty=tformat:"  > %s" $since..$until
+	git log --no-merges --pretty=tformat:"  > %s" $since..$until
 }
 
 for m in $modules
