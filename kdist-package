@@ -8,8 +8,15 @@ USAGE="<command> [<args>]"
 output_directory=
 package_type=
 package_distrib=
+packaging_topdir=
 
 package__init () {
+	kdist__get_topdir >/dev/null ||
+	die "Not in a kdist project."
+
+	packaging_topdir=$(kdist__get_repository packaging) ||
+	die "This project has no packaging recipes (packaging/ is missing)."
+
 	test -z "$package_distrib" &&
 	package_distrib=$(runtime__distribution)
 
@@ -26,8 +33,8 @@ package__init () {
 	*)	package_distrib+=/default
 	esac
 
-	test -d $libexecdir/templates/$package_distrib ||
-	die "No templates found for '$package_distrib'"
+	test -d $packaging_topdir/$package_distrib ||
+	die "No recipes found for '$package_distrib' distribution."
 }
 
 #

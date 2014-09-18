@@ -114,6 +114,11 @@ log_kdist () {
 	sed -e "1s/^Submodule.*/* kdist $tag_s..$tag_u/"
 }
 
+log_packaging () {
+	git diff --submodule $since $until -- packaging |
+	sed -e "1s/^Submodule/\*/"
+}
+
 log_project () {
 	echo "* Project $since..$(git describe --always $until)"
 	git log --pretty=tformat:"  > %s" $since..$until

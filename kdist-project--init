@@ -2,7 +2,7 @@
 
 SUMMARY="Create a kdist project"
 
-USAGE="[--kernel=<repository>] [--configs=<repository>] [--kdist=<repository>] <path>"
+USAGE="[--kernel=<repository>] [--configs=<repository>] [--kdist=<repository>] [--packaging=<repository>] <path>"
 
 declare -A repositories
 declare -A default_repositories=(
@@ -13,9 +13,10 @@ declare -A default_repositories=(
 while :
 do
 	case $1 in
-	--configs=*)	repositories[config]=${1#--configs=} ;;
+	--configs=*)	repositories[configs]=${1#--configs=} ;;
 	--kernel=*)	repositories[kernel]=${1#--kernel=} ;;
 	--kdist=*)	repositories[kdist]=${1#--kdist=} ;;
+	--packaging=*)	repositories[packaging]=${1#--packaging=} ;;
 	-*)		kdist__usage ;;
 	*)		break
 	esac
@@ -27,8 +28,8 @@ case $# in
 *)	kdist__usage
 esac
 
-# Prompt if a repo is missing.
-for m in kernel config kdist
+# Prompt if a repo is missing. 'packaging' is optional.
+for m in kernel configs kdist
 do
 	test -n "${repositories[$m]}" && continue
 
@@ -79,10 +80,20 @@ git add .gitignore &&
 git commit -q -s -m "Project creation" ||
 die "Failed to create initial commit."
 
-git submodule add ${repositories[kdist]} kdist &&
-git submodule add ${repositories[config]} configs &&
-git submodule add ${repositories[kernel]} kernel ||
-exit
+# Add mandatory submodules
+for m in kdist configs kernel; do
+	git submodule add ${repositories[$m]} $m ||
+	exit
+done
+
+# Add optional ones
+for m in packaging; do
+	test -z "${repositories[$m]}" &&
+	continue
+
+	git submodule add ${repositories[$m]} $m ||
+	exit
+done
 
 # Be sure we haven't missed anything.
 kdist__check_project . ||

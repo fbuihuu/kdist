@@ -1,3 +1,0 @@
-%description -n %{name}-debuginfo
-This package provides the %{name}'s debug information required
-by some binary object tools like kgdb, perf, etc...
