@@ -171,23 +171,18 @@ __to_kern_tag () {
 	kdist__cd_repository kernel
 
 	#
-	# First try with current HEAD: if the closest revision is the
-	# same as the config one then just use the description of HEAD.
+	# Prefer release tags over the kernel ones.
 	#
-	ktag=$(git describe HEAD) &&
-	case $ktag in
-	$1*)	echo $ktag; return
-	esac
-
-	# Otherwise find the most recent distribution tag
 	ktag=$(release__list -n1 $1\*)
 	if test "$ktag"; then
 		echo $ktag
 		return
 	fi
 
-	# Or try to pick the latest matching kernel tag. Note that
+	#
+	# Try to pick the latest matching kernel tag. Note that
 	# "x.y.z-rc" will be prefered over "x.y.z"
+	#
 	ktag=$(git tag -l $1\* | sort -V | tail -1)
 	if test "$ktag"; then
 		echo $ktag
