@@ -19,6 +19,7 @@ USAGE_RELEASE_LIST="-l|--list [-n<digit>] [-r] [<pattern>]"
 release__list () (
 	local -a tags
 	local -i max_count
+	local reverse=no
 
 	while
 		case $1 in
@@ -169,6 +170,12 @@ __verscmp () {
 	bug "can't be reached"
 }
 
+#
+# Return:
+#         0 - if args are equal
+#         1 - if $1 > $2
+#         2 - if $1 < $2
+#
 version__cmp () {
 	local i
 
