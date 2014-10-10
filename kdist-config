@@ -173,23 +173,28 @@ __to_kern_tag () {
 	#
 	# Prefer release tags over the kernel ones.
 	#
-	ktag=$(release__list -n1 $1\*)
-	if test "$ktag"; then
-		echo $ktag
+	for t in $(release__list -r $1\*); do
+		case $t in
+		$1[[:digit:]]*)	continue ;;
+		esac
+		echo $t
 		return
-	fi
+	done
 
 	#
 	# Try to pick the latest matching kernel tag. Note that
 	# "x.y.z-rc" will be prefered over "x.y.z"
 	#
-	ktag=$(git tag -l $1\* | sort -V | tail -1)
-	if test "$ktag"; then
-		echo $ktag
+	for t in $(git tag -l $1\* | sort -V -r); do
+		case $t in
+		$1[[:digit:]]*)	continue ;;
+		esac
+		echo $t
 		return
-	fi
+	done
 
 	# Just ask to the user...
+	# FiXME: this should be moved in kdist-config--update probably.
 	warn -n "Enter kernel revision to use for checking this config: "
 	while read ktag
 	do
