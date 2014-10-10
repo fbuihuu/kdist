@@ -26,6 +26,7 @@ release__list () (
 		-n*)
 			max_count=${1#-n} ;;
 		-r)
+			sort_opt=-r
 			reverse=yes ;;
 		-*)
 			kdist__usage ;;
@@ -43,7 +44,7 @@ release__list () (
 	esac
 
 
-	for tag in $(git tag -l "$pattern" | sort -V)
+	for tag in $(git tag -l "$pattern" | sort -V $sort_opt)
 	do
 		if expr $tag : ".*-[[:digit:]]\+" >/dev/null; then
 			tags[${#tags[*]}]=$tag
