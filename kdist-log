@@ -63,7 +63,7 @@ if test -z "$since"; then
 fi
 
 if $all; then
-	modules="project $(module__list) bugs"
+	modules="project $(module__list)"
 fi
 
 log_kernel () (
@@ -85,6 +85,9 @@ log_kernel () (
 )
 
 log_bugs () {
+	kdist__get_repository bugs >/dev/null ||
+	return
+
 	u=$(module__get_sha1 $until kernel) &&
 	s=$(module__get_sha1 $since kernel) ||
 	return

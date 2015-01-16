@@ -2,7 +2,7 @@
 
 SUMMARY="Create a kdist project"
 
-USAGE="[--kernel=<repository>] [--configs=<repository>] [--kdist=<repository>] [--packaging=<repository>] <path>"
+USAGE="[--kernel=<repository>] [--configs=<repository>] [--kdist=<repository>] [--packaging=<repository>] [--bugs=<repository>] <path>"
 
 declare -A repositories
 declare -A default_repositories=(
@@ -17,6 +17,7 @@ do
 	--kernel=*)	repositories[kernel]=${1#--kernel=} ;;
 	--kdist=*)	repositories[kdist]=${1#--kdist=} ;;
 	--packaging=*)	repositories[packaging]=${1#--packaging=} ;;
+	--bugs=*)	repositories[bugs]=${1#--bugs=} ;;
 	-*)		kdist__usage ;;
 	*)		break
 	esac
@@ -28,7 +29,7 @@ case $# in
 *)	kdist__usage
 esac
 
-# Prompt if a repo is missing. 'packaging' is optional.
+# Prompt if a repo is missing. 'packaging' and 'bugs' are optional.
 for m in kernel configs kdist
 do
 	test -n "${repositories[$m]}" && continue
@@ -87,7 +88,7 @@ for m in kdist configs kernel; do
 done
 
 # Add optional ones
-for m in packaging; do
+for m in packaging bugs; do
 	test -z "${repositories[$m]}" &&
 	continue
 
