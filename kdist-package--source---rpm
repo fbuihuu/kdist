@@ -183,15 +183,16 @@ package_flavour () {
 		mkdir  $package_archive
 	else
 		# Embed the full kernel source but get rid of the
-		# unsupported architectures.
-		for arch in $(find $package_archive/arch -mindepth 1 -maxdepth 1 -type d)
+		# unwanted architectures. Note that some files may be
+		# needed for generic build operations but live in a
+		# specific arch directory (arch/um/scripts/Makefile.rules).
+		for path in $(ls -d $package_archive/arch/*/)
 		do
-			asmarch=$(basename $arch)
-			if ! test -f *-$asmarch-develfiles.list; then
-				rm -fr $arch
-				continue
-			fi
-			say "Keeping source for '$asmarch' architecture"
+			# basename(1) removes the trailing '/'
+			arch=$(basename $path)
+			grep -q "^arch/$arch/" *-develfiles.list &&
+			say "Keeping source for '$arch' architecture" ||
+			rm -fr $path
 		done
 	fi
 
