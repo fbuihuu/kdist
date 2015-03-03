@@ -42,5 +42,5 @@ while read old new unused; do
 done
 
 if test $stat_errors -gt 0; then
-	warn "warning: $stat_errors error(s) occured when propagating fixes."
+	echo >&2 "warning: $stat_errors error(s) occured when propagating fixes."
 fi
