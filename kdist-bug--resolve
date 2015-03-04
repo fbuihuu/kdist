@@ -2,8 +2,7 @@
 #
 # Exit values:
 #
-#   0 : Success
-#   1 : <rev> is already registered as fix for <bug-id>
+#   0 : Success or <rev> is already registered as fix for <bug-id>
 #   6 : <rev> has an incorrect redirection to a non-upstream commit
 #   7 : <bug-id> is already marked as solved by an upstream commit
 #
@@ -70,10 +69,10 @@ warn "warning: fixing $id which is currently ignored."
 resolve__bug () {
 	case "$(bug_db__query_by_rev $1)" in
 	*$id*)
-		warn "warning: $1 is already registered as a fix for '$id', skipping."
-		exit 1
+		warn "warning: $1 is already registered as a fix for '$id', skipping." ;;
+	*)
+		bug_db__resolve $id $1 ;;
 	esac
-	bug_db__resolve $id $1
 }
 
 #
@@ -99,7 +98,7 @@ if ! resolve__is_mainlined_rev $sha1; then
 	if test -z "$commit_set"; then
 		say "Registering local commit $sha1 as fix for '$id'"
 		resolve__bug $sha1
-		exit 0
+		exit
 	fi
 
 	# Make sure that new commits are really part of mainline.
@@ -137,5 +136,5 @@ done || exit
 
 for r in $commit_set; do
 	say "Registering mainline commit $r as fix for '$id'"
-	resolve__bug $r
+	resolve__bug $r || exit
 done
