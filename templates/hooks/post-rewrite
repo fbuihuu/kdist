@@ -24,15 +24,13 @@ while read old new unused; do
 	# doesn't allow to do otherwise.
 	#
 	for id in $(kdist bug log --format=name $old~1..$old); do
-		kdist bug resolve $id $new
+		kdist bug resolve -q $id $new
 		case $? in
-		1)
-			# a commit cherry-picked from mainline still
+		0)
+			# A local fix has been propagated or a local
+			# commit cherry-picked from mainline is still
 			# not part of the stable branch: nothing wrong
 			# with that.
-			;;
-		0)
-			# a local fix has been propagated.
 			;;
 		*)
 			# other are error
