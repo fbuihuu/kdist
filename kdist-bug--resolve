@@ -2,7 +2,8 @@
 #
 # Exit values:
 #
-#   0 : Success or <rev> is already registered as fix for <bug-id>
+#   0 : Success or local <rev> is indirectly registered as fix for <bug-id> already
+#   1 : <rev> is part of upstream and is already registered
 #   6 : <rev> has an incorrect redirection to a non-upstream commit
 #   7 : <bug-id> is already marked as solved by an upstream commit
 #
@@ -63,11 +64,20 @@ warn "warning: fixing $id which is currently ignored."
 
 
 resolve__bug () {
-	case "$(bug_db__query_by_rev $1)" in
-	*$id*)
-		warn "warning: $1 is already registered as a fix for '$id', skipping." ;;
+	case "$(bug_db__query_by_rev $1)",$is_mainlined_rev in
+	*$id*,true)
+		warn "warning: $1 is already registered as an upstream fix for '$id'."
+		return 1
+		;;
+	*$id*,false)
+		# The passed rev is a local commit which has a
+		# reference that is already registered. It commonly
+		# happens when rebasing a branch: don't consider this
+		# as an error.
+		return 0
+		;;
 	*)
-		bug_db__resolve $id $1 ;;
+		bug_db__resolve $id $1
 	esac
 }
 
