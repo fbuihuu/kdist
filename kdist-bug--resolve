@@ -11,18 +11,8 @@ SUMMARY="Mark bug as fixed"
 USAGE="[-q] [--in-mainline|--not-in-mainline] <bug-id> [<rev>]"
 
 is_mainlined_rev=
-resolve__is_mainlined_rev () {
-	if test $is_mainlined_rev; then
-		$is_mainlined_rev
-		return
-	fi
-	git__is_ancestor master $1
-}
-
-
 force=no
 verbose=yes
-force_mainline_rev=false
 
 while
 	case $1 in
@@ -59,6 +49,12 @@ kdist__cd_repository kernel
 sha1=$(git rev-parse --verify $rev^{}) ||
 exit
 
+test $is_mainlined_rev || {
+	git__is_ancestor master $sha1 &&
+	is_mainlined_rev=true ||
+	is_mainlined_rev=false
+}
+
 bug_db__query_by_id $id ||
 die "Unknown bug '$id'."
 
@@ -85,7 +81,7 @@ resolve__bug () {
 # We can also register local commits which has not been mainlined yet
 # (hence not in stable too).
 #
-if ! resolve__is_mainlined_rev $sha1; then
+if ! $is_mainlined_rev; then
 	#
 	# Parse the commit message in order to figure out if it points
 	# to a mainline commit (backported commit into stable branches
