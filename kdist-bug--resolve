@@ -121,11 +121,10 @@ commit_set=${commit_set:-$sha1}
 #
 bug_db__find_all_fixes $id | while read r
 do
-	# is r is part of commit_set ?
+	# Let resolve__bug() handle the case where the upstream commit
+	# is already registered.
 	case $commit_set in
-	*$r*)
-		warn "commit $sha1 is already a fix for '$id'."
-		exit 1
+	*$r*)	continue ;;
 	esac
 
 	git__is_ancestor master $r && {
