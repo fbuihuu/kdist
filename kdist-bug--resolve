@@ -1,5 +1,12 @@
 #! /bin/bash
-
+#
+# Exit values:
+#
+#   0 : Success
+#   1 : <rev> is already registered as fix for <bug-id>
+#   6 : <rev> has an incorrect redirection to a non-upstream commit
+#   7 : <bug-id> is already marked as solved by an upstream commit
+#
 SUMMARY="Mark bug as fixed"
 
 USAGE="[-q] [--in-mainline|--not-in-mainline] <bug-id> [<rev>]"
@@ -63,7 +70,7 @@ warn "warning: fixing $id which is currently ignored."
 resolve__bug () {
 	case "$(bug_db__query_by_rev $1)" in
 	*$id*)
-		warn "commit $1 is already fixing '$id'."
+		warn "warning: $1 is already registered as a fix for '$id', skipping."
 		exit 1
 	esac
 	bug_db__resolve $id $1
@@ -100,7 +107,7 @@ if ! resolve__is_mainlined_rev $sha1; then
 		git__is_ancestor master $r &&
 		continue
 
-		warn "stable commit $sha1 points to a non mainline commmit $r."
+		warn "error: stable/local commit $sha1 has a redirection to a non mainlined commmit $r."
 		exit 6
 	done
 fi
@@ -122,7 +129,8 @@ do
 	esac
 
 	git__is_ancestor master $r && {
-		warn "commit $r in *mainline* already fixes $id, aborting."
+		warn "error: another upstream commit '$r' is already registered as a fix"
+		warn "for '$id', won't save '$commit_set' as a new *upstream* resolver."
 		exit 7
 	}
 done || exit
