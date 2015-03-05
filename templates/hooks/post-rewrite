@@ -3,6 +3,9 @@
 # This hook is used for bug tracking: if a rewritten commit is fixing
 # a bug then the resulting commit should do so too.
 #
+warn () {
+	echo >&2 "[kdist hook]: $*"
+}
 
 #
 # Is this project tracks bugs at all ?
@@ -14,7 +17,7 @@ fi
 #
 # Now forward registered bug fixes.
 #
-echo "[kdist] propagating potential bug fixes to rebased branch..."
+warn "propagating potential bug fixes to rebased branch..."
 
 declare -i stat_errors=0
 
@@ -34,11 +37,12 @@ while read old new unused; do
 			;;
 		*)
 			# other are error
+			warn "an error occured when registering $new as fix for $id"
 			stat_errors+=1
 		esac
 	done
 done
 
 if test $stat_errors -gt 0; then
-	echo >&2 "warning: $stat_errors error(s) occured when propagating fixes."
+	warn "warning: $stat_errors error(s) occured when propagating fixes."
 fi
